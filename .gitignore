@@ -33,3 +33,6 @@ ios/DerivedData/
 # Test output
 playwright-report
 test-results
+
+# Signing key material, written by npm run keystore
+keystore-secrets.txt

@@ -1,0 +1,118 @@
+name: Android APK
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+# The workflow attaches the APK to a GitHub Release.
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    name: Build and publish the APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up the Android SDK
+        uses: android-actions/setup-android@v3
+
+      - run: npm ci
+
+      # No service worker in the native shell: the assets are already local, and a
+      # precache would keep serving the previous build after an app update.
+      - name: Build the web assets
+        run: npm run build:native
+
+      - name: Copy them into the Android project
+        run: npx cap sync android
+
+      # A tag gives the version name; the run number gives a version code that only
+      # ever climbs, which Android requires for an in-place update.
+      - name: Work out the version
+        id: version
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            NAME="${GITHUB_REF_NAME#v}"
+          else
+            NAME="0.0.0-dev.${GITHUB_RUN_NUMBER}"
+          fi
+          echo "name=${NAME}" >> "$GITHUB_OUTPUT"
+          echo "building version ${NAME} (code ${GITHUB_RUN_NUMBER})"
+
+      - name: Restore the signing key
+        id: signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "${KEYSTORE_BASE64}" ]; then
+            echo "::warning::ANDROID_KEYSTORE_BASE64 is not set — the APK will be unsigned and will not install on a device. See the README for the one-time keystore setup."
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Outside the workspace, so it can never be committed or uploaded.
+          printf '%s' "${KEYSTORE_BASE64}" | base64 -d > "${RUNNER_TEMP}/release.p12"
+          echo "signed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Assemble the release APK
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ steps.signing.outputs.signed == 'true' && format('{0}/release.p12', runner.temp) || '' }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          SPEND_VERSION_NAME: ${{ steps.version.outputs.name }}
+          SPEND_VERSION_CODE: ${{ github.run_number }}
+        run: ./gradlew --no-daemon assembleRelease
+
+      - name: Name the APK after its version
+        id: apk
+        run: |
+          SRC=$(find android/app/build/outputs/apk/release -name '*.apk' | head -1)
+          if [ -z "${SRC}" ]; then
+            echo "::error::no APK was produced"
+            exit 1
+          fi
+          DEST="spend-${{ steps.version.outputs.name }}.apk"
+          mv "${SRC}" "${DEST}"
+          echo "path=${DEST}" >> "$GITHUB_OUTPUT"
+          ls -l "${DEST}"
+
+      - name: Confirm it is signed
+        if: steps.signing.outputs.signed == 'true'
+        run: |
+          APKSIGNER=$(find "${ANDROID_HOME}/build-tools" -name apksigner | sort | tail -1)
+          "${APKSIGNER}" verify --print-certs "${{ steps.apk.outputs.path }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spend-apk
+          path: ${{ steps.apk.outputs.path }}
+          if-no-files-found: error
+
+      - name: Attach it to the release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.apk.outputs.path }}
+          generate_release_notes: true
+          body: |
+            Install on Android: download the `.apk` below on the phone and open it.
+            Android will ask you to allow installing from your browser the first time.
+
+            Updates install straight over an existing copy, so your logged expenses
+            stay put.
+
+            On iPhone, open the web app in Safari and choose Share, then Add to Home
+            Screen — Apple allows no equivalent sideloaded install.

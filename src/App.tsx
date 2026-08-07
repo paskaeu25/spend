@@ -69,8 +69,15 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
 
+  /**
+   * Tabs replace the current history entry rather than stacking one up. They are a
+   * flat switcher, not a navigation stack, and pushing would mean the Android back
+   * button had to walk through every tab visited before it could leave the app —
+   * while an open sheet, which genuinely is a layer on top, still owns its own entry
+   * and closes on back.
+   */
   const goTab = useCallback((id: TabId) => {
-    window.location.hash = `#/${id}`
+    history.replaceState(history.state, '', `#/${id}`)
     setTab(id)
     window.scrollTo({ top: 0 })
   }, [])

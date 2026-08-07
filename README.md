@@ -5,6 +5,21 @@ backend, no network calls at runtime. Records live in IndexedDB, settings in loc
 
 Built to `expense-tracker-requirements.txt`.
 
+## Getting it on a device
+
+**Android** — open [Releases](../../releases) on the phone, download the `.apk` from the
+newest release and open it. Android will ask once for permission to install from your
+browser. Later releases install straight over the top, so logged expenses stay put.
+
+**iPhone / iPad** — open the web app in Safari, then Share → **Add to Home Screen**. It gets
+its own icon, opens without browser chrome, and works offline. There is deliberately no IPA
+to download: Apple permits no unsigned sideloading, so an installable file would need either
+a paid developer account or a cable and a Mac. For a local-only tracker the installed PWA is
+all but indistinguishable from a native build.
+
+**Any desktop browser** — the deployed URL works as-is, and Chrome offers an install button
+in the address bar.
+
 ## Running it
 
 ```sh
@@ -23,7 +38,10 @@ npm run preview:lan  # same, reachable from a phone on the same network
 | `npm run test:browser` | Real-engine smoke test of the flows jsdom cannot judge (see below) |
 | `npm run lint:copy` | Greps for blaming or nagging language (criterion 7) |
 | `npm run lint:contrast` | Measures every colour pair in `tokens.css` against 4.5:1 / 3:1 (criterion 9, section 10) |
-| `npm run icons` | Regenerates the icon set from the inline SVG in `scripts/gen-icons.mjs` |
+| `npm run icons` | Regenerates every icon — web, Android launcher, adaptive, splash — from one inline SVG |
+| `npm run build:native` | Web build for the native shell: same app, no service worker |
+| `npm run cap:sync` | `build:native` then copies the assets into `android/` |
+| `npm run keystore` | One-time: creates the Android signing key (see Releasing) |
 
 ## Layout
 
@@ -51,6 +69,75 @@ Some decisions worth knowing about:
 - **The theme is resolved in JS** and pinned as `data-theme`, with an inline script in
   `index.html` doing it before first paint. That way `tokens.css` holds one definition per
   palette instead of a second copy inside a media query.
+
+## Deploying the web app
+
+Hosted on Vercel with the repository connected in Vercel's UI, so every push to `main`
+deploys and nothing needs a token or a GitHub secret. `vercel.json` carries the part that
+actually matters: `sw.js`, `registerSW.js` and `manifest.webmanifest` are always
+revalidated, while `/assets/*` — content-hashed — is immutable for a year. A cached service
+worker is how a PWA gets stuck on an old build.
+
+The app is served from the domain root, which is why Vercel rather than GitHub Pages: under
+a `/repo-name/` subpath the manifest `start_url`, the scope, the icon paths and the service
+worker registration would all need rewriting, and each is a well-known way to break an
+install.
+
+## Releasing an Android APK
+
+The APK is built by GitHub Actions — this machine has no JDK and no Android SDK, and does
+not need them.
+
+```sh
+git tag v1.0.1
+git push --tags        # → Actions builds, signs, and attaches the APK to a Release
+```
+
+`.github/workflows/android.yml` runs `build:native`, copies the assets in with `cap sync`,
+and assembles a signed release APK. The version name comes from the tag; the version code
+comes from the run number, so it only ever climbs — Android blocks an install whose version
+code went backwards.
+
+**Capacitor rather than a Trusted Web Activity**, because Capacitor bundles the web assets
+*inside* the app. A TWA would fetch the deployed URL, so a first launch with no network
+would fail — and offline-first is the app's premise, not a nicety.
+
+### One-time signing setup
+
+Every build must be signed with the **same** key. Sign two builds with different keys and
+Android refuses the second, so you would have to uninstall first — which deletes every
+expense on the device.
+
+```sh
+npm run keystore     # writes release.p12 and keystore-secrets.txt, both gitignored
+```
+
+Open `keystore-secrets.txt` and add its three values as repository secrets under
+Settings → Secrets and variables → Actions:
+
+| Secret | |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | the keystore itself, base64-encoded |
+| `ANDROID_KEYSTORE_PASSWORD` | generated, 32 characters |
+| `ANDROID_KEY_ALIAS` | `spend` |
+
+Then put `release.p12` and the password in a password manager and delete
+`keystore-secrets.txt`. Lose the key and you can never again ship an update that installs
+over an existing copy.
+
+Without those secrets the workflow still runs and warns, producing an unsigned APK that
+Android will not install.
+
+`scripts/gen-keystore.mjs` writes a **PKCS#12** keystore using node-forge rather than
+calling `keytool`, because `keytool` ships with the JDK and there is no JDK here. Android's
+signing config reads PKCS#12 happily via `storeType 'PKCS12'`.
+
+### Adding iOS later
+
+`npx cap add ios` scaffolds the Xcode project, but building it needs full Xcode and
+CocoaPods, and getting it onto a phone needs either a free Apple ID (the build stops working
+after seven days and must be re-run from the Mac) or the $99/yr Developer Program for
+TestFlight. The installed PWA avoids all of it.
 
 ## Why there is a browser test as well
 

@@ -132,6 +132,19 @@ await check('the back gesture closes the sheet and stays in the app', async () =
   expect(await page.getByRole('button', { name: 'Add expense' }).isVisible(), 'back left the app')
 })
 
+// Tabs are a flat switcher, so they replace the history entry instead of stacking.
+// Otherwise Android's back button would have to walk through every tab visited
+// before it could leave the app.
+await check('switching tabs does not pile up history entries', async () => {
+  const before = await page.evaluate(() => history.length)
+  for (const tab of ['History', 'Insights', 'Settings', 'Today', 'History']) {
+    await page.getByRole('button', { name: tab }).click()
+    await page.waitForTimeout(120)
+  }
+  const after = await page.evaluate(() => history.length)
+  expect(after === before, `history grew from ${before} to ${after} across five tab switches`)
+})
+
 await page.getByRole('button', { name: 'Settings' }).click()
 await page.waitForTimeout(300)
 

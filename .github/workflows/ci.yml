@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    name: Types, tests and lints
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Type-check, 167 unit tests, and the two lints that enforce acceptance
+      # criteria directly: no blaming copy, and every colour pair measured against
+      # its contrast floor in both themes.
+      - name: Check
+        run: npm run check
+
+      - name: Build
+        run: npm run build
+
+      # The native build must ship no service worker: inside a WebView an old
+      # precache would go on serving the previous release.
+      - name: Native build carries no service worker
+        run: |
+          npm run build:native
+          if ls dist | grep -qE '^(sw\.js|registerSW\.js|manifest\.webmanifest)$'; then
+            echo "::error::the native build produced service worker assets"
+            ls dist
+            exit 1
+          fi
+          echo "clean: $(ls dist | tr '\n' ' ')"
+
+  browser:
+    name: Browser smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      # Three bugs in this app were invisible to jsdom — pointer capture swallowing
+      # a click, history/popstate closing a sheet as it opened, and StrictMode's
+      # double-invoked effect. Only a real engine catches that class of thing.
+      - name: Smoke test
+        run: npm run test:browser

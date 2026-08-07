@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { Expense } from './types'
 import { init, useStore } from './store/store'
 import { hasExpenseToday } from './store/selectors'
+import { todayISO } from './lib/dates'
 import { useThemeEffect } from './ui/useTheme'
 import { Announcer } from './ui/LiveRegion'
 import { ToastHost } from './ui/Toast'
@@ -112,15 +113,21 @@ export default function App() {
 
   /**
    * Cold start opens straight into the add sheet when nothing has been logged
-   * today — once per launch, and never on a first run with no data at all, where
+   * today — once per day, and never on a first run with no data at all, where
    * the empty Home screen and its one line of copy do a better job.
+   *
+   * The once-per-day flag lives in localStorage, not sessionStorage: Android
+   * routinely kills a backgrounded WebView, so a sessionStorage-scoped guard
+   * reset on almost every reopen and made the sheet auto-open far more than
+   * once a day.
    */
   const autoOpened = useRef(false)
   useEffect(() => {
     if (!ready || autoOpened.current) return
     autoOpened.current = true
-    if (sessionStorage.getItem('et.launched') === '1') return
-    sessionStorage.setItem('et.launched', '1')
+    const today = todayISO()
+    if (localStorage.getItem('et.autoOpenedOn') === today) return
+    localStorage.setItem('et.autoOpenedOn', today)
     if (expenses.length > 0 && !hasExpenseToday(expenses)) openAdd()
   }, [ready, expenses, openAdd])
 

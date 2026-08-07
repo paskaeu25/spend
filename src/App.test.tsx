@@ -35,7 +35,7 @@ describe('the app shell', () => {
 
   beforeEach(async () => {
     // Suppress the cold-start auto-open except where it is the thing under test.
-    sessionStorage.setItem('et.launched', '1')
+    localStorage.setItem('et.autoOpenedOn', todayISO())
     window.location.hash = ''
     deleteAllData()
     await settled()
@@ -185,7 +185,7 @@ describe('the app shell', () => {
         categories: getState().categories,
       })
       await settled()
-      sessionStorage.removeItem('et.launched')
+      localStorage.removeItem('et.autoOpenedOn')
 
       render(<App />)
       await settled()
@@ -198,7 +198,7 @@ describe('the app shell', () => {
         categories: getState().categories,
       })
       await settled()
-      sessionStorage.removeItem('et.launched')
+      localStorage.removeItem('et.autoOpenedOn')
 
       render(<App />)
       await settled()

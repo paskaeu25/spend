@@ -31,9 +31,11 @@
 }
 
 /*
- * The gesture is never the only way to delete. This button is hidden until the row
- * is hovered or the button itself is focused, which covers mouse and keyboard —
- * touch keeps the swipe, and either way the edit sheet also carries a Delete.
+ * The gesture is never the only way to delete: this button gives keyboard users the
+ * same action. It stays off-canvas until focused, deliberately — revealing it on
+ * hover put an interactive overlay under the pointer, so a click aimed at the row
+ * landed on Delete instead. Mouse users open the row and use the Delete in the edit
+ * sheet; touch users swipe.
  */
 .swiperow-a11y-delete {
   position: absolute;
@@ -50,21 +52,13 @@
   color: var(--ink-2);
   font-size: 0.8125rem;
   font-weight: 600;
+  white-space: nowrap;
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--t-fast) var(--ease);
 }
 
-.swiperow-a11y-delete:focus-visible,
-.swiperow-top:hover .swiperow-a11y-delete {
+.swiperow-a11y-delete:focus-visible {
   opacity: 1;
   pointer-events: auto;
-}
-
-/* Hover is a mouse idiom; a touch "hover" would leave it stuck on screen. */
-@media (hover: none) {
-  .swiperow-top:hover .swiperow-a11y-delete {
-    opacity: 0;
-    pointer-events: none;
-  }
 }

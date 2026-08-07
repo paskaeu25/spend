@@ -183,6 +183,44 @@ await check('the expense reaches the Home list', async () => {
   await seen(page.getByText('€12').first())
 })
 
+/*
+ * The row's keyboard delete button is an overlay. It once rendered its whole
+ * accessible name — "Delete Groceries €12" — as visible text, which made it wide
+ * enough to sit over the row and swallow clicks meant for it. That reproduced only
+ * where the fonts were wide enough, so this measures the geometry rather than
+ * trusting a click to land.
+ */
+await check('the row delete button cannot cover the row', async () => {
+  const geometry = await page.evaluate(() => {
+    const row = document.querySelector('.expense-row')
+    const button = document.querySelector('.swiperow-a11y-delete')
+    if (!row || !button) return null
+    // Force it on, the way focus does, and look at what is actually on top.
+    button.style.opacity = '1'
+    button.style.pointerEvents = 'auto'
+    const r = row.getBoundingClientRect()
+    const b = button.getBoundingClientRect()
+    const atCentre = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
+    button.style.opacity = ''
+    button.style.pointerEvents = ''
+    return {
+      coversCentre: !!atCentre?.closest('.swiperow-a11y-delete'),
+      share: b.width / r.width,
+      buttonWidth: Math.round(b.width),
+      rowWidth: Math.round(r.width),
+    }
+  })
+  expect(geometry, 'no expense row on screen to measure')
+  expect(
+    !geometry.coversCentre,
+    `the delete overlay covers the middle of the row (${geometry.buttonWidth}px over ${geometry.rowWidth}px)`,
+  )
+  expect(
+    geometry.share < 0.35,
+    `the delete overlay spans ${Math.round(geometry.share * 100)}% of the row; it should be a compact pill`,
+  )
+})
+
 await check('a row opens the edit sheet, which offers Delete', async () => {
   await page.locator('.expense-row').first().click()
   await sheetVisible()

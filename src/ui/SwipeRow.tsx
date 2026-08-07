@@ -88,8 +88,18 @@ export function SwipeRow({ children, onDelete, deleteLabel }: SwipeRowProps) {
         onPointerCancel={finish}
       >
         {children}
-        <button type="button" className="swiperow-a11y-delete" onClick={onDelete}>
-          {deleteLabel}
+        {/*
+          The description belongs in the accessible name, not on screen. Rendering
+          it as visible text made this button as wide as "Delete Groceries €12",
+          which reaches across the row and intercepts clicks meant for it.
+        */}
+        <button
+          type="button"
+          className="swiperow-a11y-delete"
+          aria-label={deleteLabel}
+          onClick={onDelete}
+        >
+          Delete
         </button>
       </div>
     </div>

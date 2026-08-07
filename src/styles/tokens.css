@@ -1,0 +1,151 @@
+/*
+ * Design tokens — section 9 of the requirements.
+ *
+ * Light and dark are both authored: dark is not an inverted light. The active
+ * theme is always pinned as data-theme on the root (an inline script in index.html
+ * resolves 'system' before first paint), so each palette is written exactly once.
+ *
+ * Where section 9's palette and section 10's contrast floor disagree — the muted
+ * role reads at 3.5:1 on a light surface — the palette value stays for marks and a
+ * separate --label token carries small text. Every text pair here is measured.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Chrome and ink */
+  --surface: #fcfcfb;
+  --plane: #f9f9f7;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  /* Axis lines, hairlines, chart strokes — non-text marks only. */
+  --muted: #898781;
+  --gridline: #e1e0d9;
+  --baseline: #c3c2b7;
+  --positive: #006300;
+  --amber: #fab219;
+
+  /* Small text that wants to recede. 5.0:1 on surface, 4.5:1 on sunken. */
+  --label: #6f6d68;
+
+  /* Derived chrome. Tokens so dark can diverge rather than invert. */
+  --hairline: #e6e5de;
+  --raised: #ffffff;
+  --sunken: #f1f0ec;
+  --neutral-fill: #6f6d67;
+  --neutral-fill-track: #e6e5de;
+  --overlay: rgba(11, 11, 11, 0.32);
+  --shadow-sheet: 0 -8px 32px rgba(11, 11, 11, 0.14);
+  --shadow-fab: 0 4px 14px rgba(11, 11, 11, 0.22);
+  --shadow-card: 0 1px 2px rgba(11, 11, 11, 0.06);
+  --amber-ink: #6b4a00;
+  --amber-wash: #fdf3dc;
+  /* Edge on the amber meter fill, which is otherwise close to its own track. */
+  --amber-edge: #71500b;
+
+  /*
+   * Slot-1 blue as the interface accent, in three roles that each need their own
+   * step: a plain fill, text on a surface (4.5:1), and a button fill under white
+   * text (4.5:1).
+   */
+  --accent: #2a78d6;
+  --accent-ink: #266dc3;
+  --accent-fill: #2976d2;
+  --on-accent: #ffffff;
+
+  /* Category palette — fixed order, never generated or cycled. */
+  --cat-1: #2a78d6;
+  --cat-2: #eb6834;
+  --cat-3: #1baf7a;
+  --cat-4: #eda100;
+  --cat-5: #e87ba4;
+  --cat-6: #008300;
+  --cat-7: #4a3aa7;
+  --cat-8: #e34948;
+
+  /*
+   * Ink for a label on the matching category fill, each measured at 4.5:1 or
+   * better. Most of these hues are mid-tone, where white falls short, so the ink
+   * is a near-black tint of the hue and the chip still reads as one colour.
+   */
+  --cat-1-ink: #02060b;
+  --cat-2-ink: #2f150a;
+  --cat-3-ink: #052318;
+  --cat-4-ink: #2f2000;
+  --cat-5-ink: #2e1921;
+  --cat-6-ink: #ffffff;
+  --cat-7-ink: #ffffff;
+  --cat-8-ink: #280d0d;
+
+  /* Typography */
+  --font: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --hero: 3.25rem;
+  --amount: 2.75rem;
+
+  /* Motion — 150-200ms ease-out, nothing decorative. */
+  --t-fast: 150ms;
+  --t: 180ms;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  /* Layout */
+  --tabbar-h: 56px;
+  --gutter: 16px;
+  --radius: 14px;
+  --radius-sm: 10px;
+  --tap: 44px;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --surface: #1a1a19;
+  --plane: #0d0d0d;
+  --ink: #ffffff;
+  --ink-2: #c3c2b7;
+  --muted: #898781;
+  --gridline: #2c2c2a;
+  --baseline: #383835;
+  --positive: #0ca30c;
+  --amber: #fab219;
+
+  /* A shade up from the palette's muted step, to clear 4.5:1 on the raised
+     popover surface as well as on the page. */
+  --label: #8c8a84;
+
+  --hairline: #2c2c2a;
+  --raised: #232322;
+  --sunken: #131312;
+  --neutral-fill: #8f8d85;
+  --neutral-fill-track: #2c2c2a;
+  --overlay: rgba(0, 0, 0, 0.6);
+  --shadow-sheet: 0 -8px 32px rgba(0, 0, 0, 0.55);
+  --shadow-fab: 0 4px 14px rgba(0, 0, 0, 0.5);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --amber-ink: #fbc85c;
+  --amber-wash: #2e2409;
+  /* Amber stands out against the dark track on its own. */
+  --amber-edge: transparent;
+
+  --accent: #3987e5;
+  --accent-ink: #418ce6;
+  --accent-fill: #3277ca;
+  --on-accent: #ffffff;
+
+  --cat-1: #3987e5;
+  --cat-2: #d95926;
+  --cat-3: #199e70;
+  --cat-4: #c98500;
+  --cat-5: #d55181;
+  --cat-6: #008300;
+  --cat-7: #9085e9;
+  --cat-8: #e66767;
+
+  --cat-1-ink: #0b1b2e;
+  --cat-2-ink: #281007;
+  --cat-3-ink: #052016;
+  --cat-4-ink: #281b00;
+  --cat-5-ink: #250e17;
+  --cat-6-ink: #ffffff;
+  --cat-7-ink: #1d1b2f;
+  --cat-8-ink: #2e1515;
+}

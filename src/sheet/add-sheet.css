@@ -1,0 +1,375 @@
+.add-sheet {
+  /* Tall enough that the keypad keeps the bottom ~45% without the sheet scrolling. */
+  height: 88dvh;
+  max-height: 88dvh;
+}
+
+.add-sheet-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--gutter) 12px;
+}
+
+/* ---------- Amount ---------- */
+
+/* Takes the spare height so the keypad can hold its share exactly. */
+.amount-row {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 0 4px;
+}
+
+.amount {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  /* Standalone figure: proportional digits, not tabular. */
+  font-size: var(--amount);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  cursor: text;
+}
+
+.amount-symbol {
+  font-size: 0.5em;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.amount-value-empty {
+  color: var(--label);
+}
+
+/* ---------- Date + note ---------- */
+
+.meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--tap);
+}
+
+.date-block {
+  position: relative;
+  flex: none;
+}
+
+.date-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--tap);
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+  border: 1px solid var(--hairline);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.date-toggle-hint {
+  font-size: 0.5rem;
+  color: var(--label);
+}
+
+.date-options {
+  position: absolute;
+  z-index: 2;
+  bottom: calc(100% + 6px);
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border-radius: var(--radius);
+  background: var(--raised);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-fab);
+}
+
+.date-option {
+  min-height: var(--tap);
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  background: var(--sunken);
+  border: 1px solid var(--hairline);
+  white-space: nowrap;
+}
+
+.date-option.is-active {
+  border-color: var(--accent-ink);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.date-pick input {
+  min-height: var(--tap);
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--hairline);
+  background: var(--surface);
+}
+
+.note-link {
+  flex: none;
+  color: var(--accent-ink);
+  font-size: 0.875rem;
+}
+
+.note-field {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.note-field input {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--tap);
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--hairline);
+  background: var(--sunken);
+}
+
+.note-count {
+  flex: none;
+  font-size: 0.6875rem;
+  color: var(--label);
+}
+
+/* ---------- Category chips ---------- */
+
+.chips-block {
+  padding: 10px 0 8px;
+}
+
+.chips-scroll {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 2px 0;
+  scroll-padding-inline: 8px;
+}
+
+.chips::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--tap);
+  padding: 0 14px;
+  border-radius: 22px;
+  background: var(--sunken);
+  border: 1px solid var(--hairline);
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    background-color var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease);
+}
+
+.chip.is-selected {
+  /* A hue-neutral edge, so mid-tone fills keep a boundary against the surface. */
+  border-color: rgba(0, 0, 0, 0.22);
+  font-weight: 600;
+}
+
+.chip-emoji {
+  font-size: 1rem;
+}
+
+.chip-add {
+  flex: none;
+  width: var(--tap);
+  min-width: var(--tap);
+  padding: 0;
+  justify-content: center;
+  font-size: 1.25rem;
+  color: var(--ink-2);
+}
+
+/* Inline category creation */
+
+.chip-create {
+  padding: 8px;
+  margin-bottom: 8px;
+  border-radius: var(--radius);
+  background: var(--sunken);
+  border: 1px solid var(--hairline);
+}
+
+.chip-create-row {
+  display: flex;
+  gap: 8px;
+}
+
+.chip-create-emoji {
+  width: 52px;
+  min-height: var(--tap);
+  text-align: center;
+  font-size: 1.125rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--hairline);
+  background: var(--surface);
+}
+
+.chip-create-name {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--tap);
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--hairline);
+  background: var(--surface);
+}
+
+.chip-create-add {
+  flex: none;
+}
+
+.chip-create-emoji-row {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  margin-top: 8px;
+  scrollbar-width: none;
+}
+
+.chip-create-emoji-row::-webkit-scrollbar {
+  display: none;
+}
+
+.emoji-pick {
+  flex: none;
+  width: var(--tap);
+  height: var(--tap);
+  border-radius: var(--radius-sm);
+  font-size: 1.125rem;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+}
+
+.emoji-pick.is-picked {
+  border-color: var(--accent-ink);
+}
+
+/* ---------- Keypad ---------- */
+
+/* The bottom ~45% of the sheet, with a floor that keeps keys at 56px on short
+   screens even if that costs the amount area some room. */
+.keypad {
+  flex: none;
+  height: 45%;
+  min-height: 232px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 8px;
+  padding: 4px 0 10px;
+}
+
+.key {
+  min-height: 56px;
+  border-radius: var(--radius);
+  background: var(--sunken);
+  border: 1px solid var(--hairline);
+  font-size: 1.5rem;
+  font-weight: 500;
+  display: grid;
+  place-items: center;
+  transition:
+    background-color 90ms var(--ease),
+    transform 90ms var(--ease);
+}
+
+.key:active {
+  background: var(--neutral-fill-track);
+  transform: scale(0.97);
+}
+
+.key-backspace {
+  font-size: 1.25rem;
+  color: var(--ink-2);
+}
+
+/* ---------- Save ---------- */
+
+.add-sheet-actions {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.delete-expense {
+  width: 100%;
+}
+
+.save-confirm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 6px 0 12px;
+  min-height: var(--tap);
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+  border: 1px solid var(--hairline);
+  font-size: 0.875rem;
+  animation: confirm-in var(--t-fast) var(--ease);
+}
+
+@keyframes confirm-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.save-confirm-undo {
+  min-height: 36px;
+  min-width: var(--tap);
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+/* Wider screens: the keypad does not need to stretch across a tablet. */
+@media (min-width: 520px) {
+  .add-sheet {
+    height: auto;
+    max-height: 92dvh;
+  }
+
+  .keypad {
+    height: auto;
+    min-height: 260px;
+  }
+}

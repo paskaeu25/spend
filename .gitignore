@@ -1,0 +1,35 @@
+node_modules
+dist
+dev-dist
+*.local
+.DS_Store
+*.tsbuildinfo
+
+# Personal data exports
+expense-tracker-data-*.json
+
+# Signing keys — never commit these
+*.p12
+*.keystore
+*.jks
+keystore.properties
+
+# Hosting
+.vercel
+
+# Native build output. The android/ project itself is committed; its build
+# artefacts and machine-local SDK path are not.
+android/local.properties
+android/.gradle/
+android/build/
+android/app/build/
+android/captures/
+android/.idea/
+android/app/release/
+ios/App/Pods/
+ios/App/build/
+ios/DerivedData/
+
+# Test output
+playwright-report
+test-results

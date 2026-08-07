@@ -1,0 +1,96 @@
+.cap-body {
+  padding-top: 8px;
+}
+
+.cap-note {
+  color: var(--ink-2);
+  font-size: 0.875rem;
+  margin-bottom: 16px;
+}
+
+.cap-input-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 0 12px;
+}
+
+.cap-symbol {
+  font-size: 1.5rem;
+  color: var(--ink-2);
+}
+
+.cap-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 56px;
+  padding: 0 12px;
+  font-size: 2rem;
+  font-weight: 600;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  background: var(--sunken);
+}
+
+.cap-nudges {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.cap-nudges .btn {
+  padding: 0;
+}
+
+.cap-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cap-remove {
+  width: 100%;
+}
+
+/* ---------- Insight card ---------- */
+
+.insight {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+  margin: 12px 0;
+}
+
+.insight-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.insight-text {
+  font-size: 0.9375rem;
+  line-height: 1.35;
+}
+
+.insight-action {
+  margin-top: 10px;
+  min-height: var(--tap);
+  padding: 0 16px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-fill);
+  color: var(--on-accent);
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.insight-dismiss {
+  flex: none;
+  width: var(--tap);
+  height: var(--tap);
+  margin: -8px -8px 0 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--label);
+  font-size: 0.875rem;
+}

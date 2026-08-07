@@ -1,0 +1,241 @@
+.chart-frame {
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.chart-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.chart-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.chart-caption {
+  font-size: 0.75rem;
+  color: var(--label);
+  margin-top: 2px;
+}
+
+.chart-toggle {
+  flex: none;
+  display: flex;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.chart-toggle-btn {
+  min-height: 34px;
+  min-width: 52px;
+  padding: 0 10px;
+  font-size: 0.75rem;
+  color: var(--ink-2);
+  background: var(--surface);
+}
+
+.chart-toggle-btn.is-active {
+  background: var(--sunken);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding-bottom: 8px;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--ink-2);
+}
+
+.legend-swatch {
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.legend-swatch.is-muted {
+  /* Matches the dashed comparison line, so identity is not colour alone. */
+  background-image: repeating-linear-gradient(
+    to right,
+    currentColor 0 4px,
+    transparent 4px 7px
+  ) !important;
+}
+
+/* ---------- Plot area ---------- */
+
+.chart-plot {
+  position: relative;
+}
+
+.linechart {
+  display: block;
+  touch-action: pan-y;
+}
+
+.chart-tick {
+  fill: var(--label);
+  font-size: 10px;
+  font-family: var(--font);
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-bar-label {
+  fill: var(--ink-2);
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--font);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Tooltips ---------- */
+
+.chart-tooltip {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  padding: 6px 9px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--surface);
+  font-size: 0.75rem;
+  line-height: 1.35;
+  white-space: nowrap;
+  box-shadow: var(--shadow-card);
+}
+
+.line-tooltip,
+.minibar-tooltip {
+  top: 0;
+  transform: translateX(-50%);
+}
+
+.line-tooltip-day {
+  font-weight: 600;
+}
+
+.line-tooltip-muted {
+  color: var(--baseline);
+}
+
+.hbar-tooltip {
+  left: 0;
+  bottom: calc(100% - 6px);
+  white-space: normal;
+  max-width: 100%;
+}
+
+/* ---------- Horizontal bars ---------- */
+
+.hbars {
+  display: flex;
+  flex-direction: column;
+  /* 2px of surface between adjacent fills. */
+  gap: 10px;
+}
+
+.hbar-hit {
+  position: relative;
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 2px 0;
+}
+
+.hbar-hit:disabled {
+  cursor: default;
+}
+
+.hbar-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+.hbar-emoji {
+  flex: none;
+  font-size: 0.875rem;
+}
+
+.hbar-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.8125rem;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hbar-value {
+  flex: none;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.hbar-track {
+  display: block;
+  height: 10px;
+  background: var(--neutral-fill-track);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.hbar-fill {
+  display: block;
+  height: 100%;
+  /* Rounded at the data end, square where it meets the baseline. */
+  border-radius: 0 4px 4px 0;
+  min-width: 3px;
+  transition: width var(--t) var(--ease);
+}
+
+/* ---------- Table view ---------- */
+
+.chart-table-wrap {
+  overflow-x: auto;
+}
+
+.chart-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.chart-table th,
+.chart-table td {
+  padding: 8px 6px;
+  text-align: left;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.chart-table thead th {
+  color: var(--label);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.chart-table tbody th {
+  font-weight: 500;
+}
+
+.chart-table .is-numeric {
+  text-align: right;
+}

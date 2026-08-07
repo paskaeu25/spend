@@ -1,0 +1,94 @@
+.sheet-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  background: var(--overlay);
+  opacity: 0;
+  transition: opacity var(--t) var(--ease);
+}
+
+.sheet-layer[data-state='open'] .sheet-backdrop {
+  opacity: 1;
+}
+
+.sheet-panel {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  max-height: 94dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  box-shadow: var(--shadow-sheet);
+  padding-bottom: env(safe-area-inset-bottom);
+  transform: translateY(100%);
+  transition: transform var(--t) var(--ease);
+  will-change: transform;
+}
+
+.sheet-layer[data-state='open'] .sheet-panel {
+  transform: none;
+}
+
+/* The drag surface: grabber plus header. Touch-action none so the browser does not
+   claim the vertical gesture for scrolling. */
+.sheet-grab-zone {
+  flex: none;
+  touch-action: none;
+  cursor: grab;
+  padding-top: 8px;
+}
+
+.sheet-grabber {
+  width: 40px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--baseline);
+  margin: 0 auto;
+}
+
+.sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px var(--gutter) 0;
+  min-height: var(--tap);
+}
+
+.sheet-title {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.sheet-close {
+  width: var(--tap);
+  height: var(--tap);
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--ink-2);
+  font-size: 0.9375rem;
+}
+
+.sheet-body {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 var(--gutter) 20px;
+}
+
+.sheet-footer {
+  flex: none;
+  padding: 12px var(--gutter) 16px;
+  border-top: 1px solid var(--hairline);
+}

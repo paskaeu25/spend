@@ -1,0 +1,253 @@
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { act, render, screen, within } from '@testing-library/react'
+import { fireEvent } from '@testing-library/dom'
+import App from './App'
+import { buildSampleExpenses } from './db/sampleData'
+import { deleteAllData, getState, importData, init, setSettings } from './store/store'
+import { todayISO } from './lib/dates'
+import type { Expense } from './types'
+
+const settled = () => new Promise((resolve) => setTimeout(resolve, 20))
+
+function goTo(tab: string) {
+  act(() => {
+    screen.getByRole('button', { name: tab }).click()
+  })
+}
+
+function expense(partial: Partial<Expense> & { amount: number; date: string }): Expense {
+  return {
+    id: `id-${partial.date}-${partial.amount}`,
+    currency: 'EUR',
+    categoryId: 'cat-groceries',
+    note: '',
+    createdAt: `${partial.date}T10:00:00.000Z`,
+    isRecurringHint: false,
+    ...partial,
+  }
+}
+
+describe('the app shell', () => {
+  beforeAll(async () => {
+    await init()
+    setSettings({ currency: 'EUR', currencySymbol: '€', monthStartDay: 1, theme: 'system' })
+  })
+
+  beforeEach(async () => {
+    // Suppress the cold-start auto-open except where it is the thing under test.
+    sessionStorage.setItem('et.launched', '1')
+    window.location.hash = ''
+    deleteAllData()
+    await settled()
+  })
+
+  describe('with no data at all', () => {
+    /* Acceptance criterion 10: every screen has a deliberate empty state. */
+    it('shows a zero hero, one line of copy, and nothing else', () => {
+      render(<App />)
+      expect(screen.getByText('Log your first expense.')).toBeTruthy()
+      expect(screen.getByText('€')).toBeTruthy()
+      expect(screen.getByText('0')).toBeTruthy()
+      // No insight card, no today's list, no budget meter.
+      expect(screen.queryByRole('progressbar')).toBeNull()
+      expect(screen.queryByLabelText('Insight')).toBeNull()
+      expect(screen.queryByText('Nothing logged today.')).toBeNull()
+    })
+
+    it('pulses the add button once', () => {
+      render(<App />)
+      expect(screen.getByRole('button', { name: 'Add expense' }).className).toContain('pulse')
+    })
+
+    it('gives History an empty state rather than a blank screen', () => {
+      render(<App />)
+      goTo('History')
+      expect(screen.getByText('Your logged expenses will show up here.')).toBeTruthy()
+    })
+
+    it('gives Insights an empty state', () => {
+      render(<App />)
+      goTo('Insights')
+      expect(screen.getByText('Charts appear here once you have logged a few expenses.')).toBeTruthy()
+    })
+
+    it('still lists the default categories in Settings', () => {
+      render(<App />)
+      goTo('Settings')
+      expect(screen.getByText('Groceries')).toBeTruthy()
+      expect(screen.getByText('0 expenses stored.')).toBeTruthy()
+    })
+  })
+
+  describe('with data', () => {
+    beforeEach(async () => {
+      importData({
+        expenses: buildSampleExpenses('EUR', 1),
+        categories: getState().categories,
+      })
+      await settled()
+    })
+
+    it('shows a hero figure and a comparison with last month', () => {
+      render(<App />)
+      expect(screen.queryByText('Log your first expense.')).toBeNull()
+      expect(screen.getByText(/this time last month/)).toBeTruthy()
+    })
+
+    it('offers exactly one insight card, carrying one action or a dismiss', () => {
+      render(<App />)
+      const cards = screen.queryAllByLabelText('Insight')
+      expect(cards.length).toBeLessThanOrEqual(1)
+      if (cards.length === 1) {
+        expect(within(cards[0]).getByRole('button', { name: 'Dismiss insight' })).toBeTruthy()
+      }
+    })
+
+    it('groups History by day with a subtotal per day', () => {
+      render(<App />)
+      goTo('History')
+      const groups = screen.getAllByRole('region')
+      expect(groups.length).toBeGreaterThan(0)
+      expect(screen.getByPlaceholderText('Search notes')).toBeTruthy()
+      expect(screen.getByRole('button', { name: /^Categories/ })).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Amount' })).toBeTruthy()
+    })
+
+    it('filters History by a search term', () => {
+      render(<App />)
+      goTo('History')
+      const search = screen.getByPlaceholderText('Search notes')
+      act(() => {
+        fireEvent.change(search, { target: { value: 'zzzznothing' } })
+      })
+      expect(screen.getByText('Nothing matches these filters.')).toBeTruthy()
+    })
+
+    /* Acceptance criterion 8: every chart has a table view. */
+    it('draws both charts and switches each to a table', () => {
+      render(<App />)
+      goTo('Insights')
+
+      const breakdown = screen.getByRole('region', { name: 'Where it went' })
+      const overTime = screen.getByRole('region', { name: 'Spending over time' })
+      expect(within(overTime).getByRole('img', { name: /Cumulative spending/ })).toBeTruthy()
+
+      for (const frame of [breakdown, overTime]) {
+        act(() => within(frame).getByRole('button', { name: 'Table' }).click())
+        expect(within(frame).getByRole('table')).toBeTruthy()
+        act(() => within(frame).getByRole('button', { name: 'Chart' }).click())
+        expect(within(frame).queryByRole('table')).toBeNull()
+      }
+    })
+
+    it('never draws more than six bars', () => {
+      render(<App />)
+      goTo('Insights')
+      const breakdown = screen.getByRole('region', { name: 'Where it went' })
+      expect(within(breakdown).getAllByRole('listitem').length).toBeLessThanOrEqual(6)
+    })
+
+    it('drills into a category for its last six months', () => {
+      render(<App />)
+      goTo('Insights')
+      const breakdown = screen.getByRole('region', { name: 'Where it went' })
+      const firstBar = within(breakdown).getAllByRole('button')[2] // after Chart/Table
+      act(() => firstBar.click())
+      expect(screen.getByRole('region', { name: /last six months/ })).toBeTruthy()
+      const drill = screen.getByRole('region', { name: /last six months/ })
+      act(() => within(drill).getByRole('button', { name: 'Table' }).click())
+      // Six months, one row each.
+      expect(within(drill).getAllByRole('row')).toHaveLength(7)
+    })
+
+    /* Acceptance criterion 3: deleting an expense can be undone. */
+    it('deletes a row and puts it back with Undo', async () => {
+      importData({
+        expenses: [expense({ amount: 1234, date: todayISO() })],
+        categories: getState().categories,
+      })
+      await settled()
+      render(<App />)
+
+      const before = getState().expenses.length
+      act(() => screen.getByRole('button', { name: /^Delete Groceries/ }).click())
+      await settled()
+      expect(getState().expenses).toHaveLength(before - 1)
+
+      act(() => screen.getByRole('button', { name: 'Undo' }).click())
+      await settled()
+      expect(getState().expenses).toHaveLength(before)
+    })
+
+    it('opens the add sheet on a cold start when nothing is logged today', async () => {
+      importData({
+        expenses: [expense({ amount: 500, date: '2026-01-02' })],
+        categories: getState().categories,
+      })
+      await settled()
+      sessionStorage.removeItem('et.launched')
+
+      render(<App />)
+      await settled()
+      expect(screen.getByRole('dialog', { name: 'Add expense' })).toBeTruthy()
+    })
+
+    it('leaves the add sheet closed when today is already logged', async () => {
+      importData({
+        expenses: [expense({ amount: 500, date: todayISO() })],
+        categories: getState().categories,
+      })
+      await settled()
+      sessionStorage.removeItem('et.launched')
+
+      render(<App />)
+      await settled()
+      expect(screen.queryByRole('dialog', { name: 'Add expense' })).toBeNull()
+    })
+  })
+
+  describe('theme', () => {
+    it('pins the document theme when an explicit choice is made', () => {
+      render(<App />)
+      goTo('Settings')
+
+      act(() => screen.getByRole('button', { name: 'Dark' }).click())
+      expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
+
+      act(() => screen.getByRole('button', { name: 'Light' }).click())
+      expect(document.documentElement.getAttribute('data-theme')).toBe('light')
+
+      // 'System' resolves prefers-color-scheme and pins the result, which is what
+      // lets tokens.css hold one definition per palette. The stub reports light.
+      act(() => screen.getByRole('button', { name: 'System' }).click())
+      expect(document.documentElement.getAttribute('data-theme')).toBe('light')
+    })
+  })
+
+  describe('caps', () => {
+    it('shows a neutral meter with the remaining amount, and no meter without caps', async () => {
+      const categories = getState().categories.map((c) =>
+        c.id === 'cat-groceries' ? { ...c, monthlyCap: 20_000 } : c,
+      )
+      importData({ expenses: [expense({ amount: 5_000, date: todayISO() })], categories })
+      await settled()
+
+      render(<App />)
+      const meter = screen.getByRole('progressbar', { name: /monthly caps/ })
+      expect(meter.getAttribute('aria-valuenow')).toBe('25')
+      expect(screen.getByText('€150 left')).toBeTruthy()
+    })
+
+    it('states an over-cap figure in words, framed as reallocation', async () => {
+      const categories = getState().categories.map((c) =>
+        c.id === 'cat-groceries' ? { ...c, monthlyCap: 2_000 } : c,
+      )
+      importData({ expenses: [expense({ amount: 5_000, date: todayISO() })], categories })
+      await settled()
+
+      render(<App />)
+      expect(screen.getByText('€30 over your caps')).toBeTruthy()
+      expect(screen.getByText(/trim there or/)).toBeTruthy()
+    })
+  })
+})

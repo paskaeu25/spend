@@ -1,0 +1,70 @@
+.swiperow {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+}
+
+.swiperow-under {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: stretch;
+  /* Neutral, not red: deleting a row is routine and reversible. */
+  background: var(--sunken);
+}
+
+.swiperow-delete {
+  min-width: 84px;
+  min-height: var(--tap);
+  padding: 0 16px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.swiperow-top {
+  position: relative;
+  background: var(--surface);
+  transition: transform var(--t) var(--ease);
+  touch-action: pan-y;
+}
+
+/*
+ * The gesture is never the only way to delete. This button is hidden until the row
+ * is hovered or the button itself is focused, which covers mouse and keyboard —
+ * touch keeps the swipe, and either way the edit sheet also carries a Delete.
+ */
+.swiperow-a11y-delete {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  min-height: 36px;
+  min-width: var(--tap);
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-fab);
+  color: var(--ink-2);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--t-fast) var(--ease);
+}
+
+.swiperow-a11y-delete:focus-visible,
+.swiperow-top:hover .swiperow-a11y-delete {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Hover is a mouse idiom; a touch "hover" would leave it stuck on screen. */
+@media (hover: none) {
+  .swiperow-top:hover .swiperow-a11y-delete {
+    opacity: 0;
+    pointer-events: none;
+  }
+}

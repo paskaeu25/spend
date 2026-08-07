@@ -1,0 +1,10 @@
+.chart-hint {
+  margin-top: 10px;
+  font-size: 0.75rem;
+  color: var(--label);
+}
+
+.drill-close {
+  width: 100%;
+  margin-bottom: 12px;
+}

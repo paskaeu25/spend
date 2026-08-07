@@ -1,0 +1,290 @@
+.settings-group {
+  padding: 6px 0 20px;
+}
+
+.settings-group .section-heading {
+  padding-bottom: 10px;
+  display: block;
+}
+
+.settings-lead {
+  margin-bottom: 12px;
+}
+
+.notice {
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  border-radius: var(--radius);
+  background: var(--amber-wash);
+  color: var(--amber-ink);
+  border: 1px solid var(--amber);
+  font-size: 0.875rem;
+}
+
+.field {
+  display: block;
+  margin-bottom: 14px;
+}
+
+.field-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.field-grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.field-label {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+  margin-bottom: 6px;
+}
+
+.field-input {
+  width: 100%;
+  min-height: var(--tap);
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--hairline);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.field-input-emoji {
+  width: 72px;
+  text-align: center;
+  font-size: 1.125rem;
+}
+
+.field-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.75rem;
+  color: var(--label);
+  line-height: 1.4;
+}
+
+.settings-form {
+  padding-top: 8px;
+}
+
+.segmented {
+  display: flex;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.segmented-btn {
+  flex: 1;
+  min-height: var(--tap);
+  font-size: 0.875rem;
+  background: var(--surface);
+  color: var(--ink-2);
+}
+
+.segmented-btn + .segmented-btn {
+  border-left: 1px solid var(--hairline);
+}
+
+.segmented-btn.is-active {
+  background: var(--sunken);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* ---------- Categories ---------- */
+
+.cat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.cat-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+}
+
+.cat-item.is-archived {
+  opacity: 0.62;
+}
+
+.cat-swatch {
+  flex: none;
+  width: 8px;
+  height: 28px;
+  border-radius: 4px;
+}
+
+.cat-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 0 4px 0 10px;
+  text-align: left;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+.cat-main:hover {
+  background: var(--sunken);
+}
+
+.cat-emoji {
+  font-size: 1.125rem;
+}
+
+.cat-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 0.9375rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cat-tag {
+  flex: none;
+  font-size: 0.6875rem;
+  color: var(--label);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cat-cap {
+  flex: none;
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+}
+
+.cat-chevron {
+  flex: none;
+  color: var(--label);
+  font-size: 1.125rem;
+  line-height: 1;
+  padding-left: 2px;
+}
+
+.cat-move {
+  flex: none;
+  display: flex;
+}
+
+.cat-move-btn {
+  width: var(--tap);
+  height: var(--tap);
+  display: grid;
+  place-items: center;
+  color: var(--ink-2);
+}
+
+.cat-move-btn:disabled {
+  color: var(--gridline);
+  cursor: default;
+}
+
+.cat-add {
+  display: flex;
+  gap: 8px;
+}
+
+.cat-add .field-input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---------- Data actions ---------- */
+
+.settings-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.settings-wide {
+  width: 100%;
+}
+
+.import-report {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+}
+
+.import-report-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.import-report-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.import-report-close {
+  flex: none;
+  width: var(--tap);
+  height: var(--tap);
+  margin: -10px -10px 0 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--label);
+  font-size: 0.8125rem;
+}
+
+.import-report-list {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+  line-height: 1.4;
+}
+
+.import-report-list li {
+  padding-left: 14px;
+  position: relative;
+}
+
+.import-report-list li::before {
+  content: '·';
+  position: absolute;
+  left: 4px;
+  color: var(--label);
+}
+
+.import-report .field-hint {
+  margin-top: 10px;
+}
+
+.cat-delete {
+  margin-top: 4px;
+}
+
+.settings-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}

@@ -1,0 +1,122 @@
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { act, render, screen } from '@testing-library/react'
+import { fireEvent } from '@testing-library/dom'
+import type { Category, Expense } from '../types'
+import { CategorySheet } from './CategorySheet'
+import { Announcer } from '../ui/LiveRegion'
+import { ToastHost } from '../ui/Toast'
+import { deleteAllData, getState, importData, init } from '../store/store'
+
+const settled = () => new Promise((resolve) => setTimeout(resolve, 20))
+
+function expense(id: string, categoryId: string): Expense {
+  return {
+    id,
+    amount: 1000,
+    currency: 'EUR',
+    categoryId,
+    note: '',
+    date: '2026-08-04',
+    createdAt: '2026-08-04T10:00:00.000Z',
+    isRecurringHint: false,
+  }
+}
+
+function renderFor(category: Category) {
+  return render(
+    <Announcer>
+      <ToastHost>
+        <CategorySheet open category={category} onClose={() => {}} />
+      </ToastHost>
+    </Announcer>,
+  )
+}
+
+const tap = (name: string | RegExp) => act(() => screen.getByRole('button', { name }).click())
+
+describe('category management', () => {
+  beforeAll(async () => {
+    await init()
+  })
+
+  beforeEach(async () => {
+    deleteAllData()
+    await settled()
+    importData({
+      expenses: [expense('a', 'cat-fun'), expense('b', 'cat-fun'), expense('c', 'cat-groceries')],
+      categories: getState().categories,
+    })
+    await settled()
+  })
+
+  const fun = () => getState().categories.find((c) => c.name === 'Fun')!
+
+  it('renames a category and sets a cap', async () => {
+    renderFor(fun())
+    act(() => {
+      fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Going out' } })
+      fireEvent.change(screen.getByLabelText(/Monthly cap/), { target: { value: '120' } })
+    })
+    tap('Save changes')
+    await settled()
+
+    const updated = getState().categories.find((c) => c.id === 'cat-fun')!
+    expect(updated.name).toBe('Going out')
+    expect(updated.monthlyCap).toBe(12_000)
+  })
+
+  it('clears a cap when the field is emptied', async () => {
+    renderFor({ ...fun(), monthlyCap: 5_000 })
+    act(() => {
+      fireEvent.change(screen.getByLabelText(/Monthly cap/), { target: { value: '' } })
+    })
+    tap('Save changes')
+    await settled()
+    expect(getState().categories.find((c) => c.id === 'cat-fun')!.monthlyCap).toBeNull()
+  })
+
+  it('archives with an Undo that puts it back', async () => {
+    renderFor(fun())
+    tap('Archive category')
+    await settled()
+    expect(getState().categories.find((c) => c.id === 'cat-fun')!.isArchived).toBe(true)
+
+    tap('Undo')
+    await settled()
+    expect(getState().categories.find((c) => c.id === 'cat-fun')!.isArchived).toBe(false)
+  })
+
+  /* Acceptance criterion 3: deleting a category is undoable, and never orphans a row. */
+  it('deletes a category, moving its expenses to the catch-all', async () => {
+    renderFor(fun())
+    expect(screen.getByText(/2 expenses move to Other/)).toBeTruthy()
+
+    tap('Delete category')
+    await settled()
+
+    expect(getState().categories.some((c) => c.id === 'cat-fun')).toBe(false)
+    // Nothing is left pointing at a category that no longer exists.
+    const ids = new Set(getState().categories.map((c) => c.id))
+    expect(getState().expenses.every((e) => ids.has(e.categoryId))).toBe(true)
+    expect(getState().expenses.filter((e) => e.categoryId === 'cat-other')).toHaveLength(2)
+  })
+
+  it('restores both the category and its expenses on Undo', async () => {
+    renderFor(fun())
+    tap('Delete category')
+    await settled()
+
+    tap('Undo')
+    await settled()
+
+    expect(getState().categories.some((c) => c.id === 'cat-fun')).toBe(true)
+    expect(getState().expenses.filter((e) => e.categoryId === 'cat-fun')).toHaveLength(2)
+    expect(getState().expenses.filter((e) => e.categoryId === 'cat-other')).toHaveLength(0)
+  })
+
+  it('says plainly that nothing moves when the category is empty', () => {
+    const health = getState().categories.find((c) => c.name === 'Health')!
+    renderFor(health)
+    expect(screen.getByText(/Nothing is filed under this one/)).toBeTruthy()
+  })
+})

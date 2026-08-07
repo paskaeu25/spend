@@ -1,0 +1,424 @@
+================================================================================
+EXPENSE TRACKER - BUILD REQUIREMENTS
+Mobile-first PWA | Manual entry | Local-only storage | No account
+================================================================================
+
+Paste this whole document into your AI build tool as the build prompt.
+
+
+--------------------------------------------------------------------------------
+1. WHAT THIS IS
+--------------------------------------------------------------------------------
+
+A mobile-first, installable web app (PWA) for tracking personal spending by
+manual entry. No bank connections, no account, no login. All data lives on the
+device.
+
+The product's job is not "show me where my money went" - users mostly already
+know. The job is to make the act of logging a spend so fast it survives past
+week three, and to turn the resulting data into one clear next action. Every
+requirement below serves that.
+
+Context for why the requirements are shaped this way: roughly 67% of budgeting
+app users abandon within 30 days. The four documented causes are (a) front-loaded
+setup before any value, (b) punitive red/guilt UI that makes users self-label as
+"bad at budgeting", (c) an effort-to-reward mismatch once novelty fades, and
+(d) insights with no attached action. Each principle below is a countermeasure.
+
+
+--------------------------------------------------------------------------------
+2. NON-NEGOTIABLE DESIGN PRINCIPLES
+--------------------------------------------------------------------------------
+
+These override any feature request that conflicts with them.
+
+1. VALUE BEFORE CONFIGURATION
+   The app is fully usable within 3 seconds of first open. No onboarding wizard,
+   no signup, no currency picker, no category setup, no "let's get you started"
+   carousel. The first screen is the working screen.
+
+2. THE ADD-EXPENSE ACTION IS THE PRODUCT
+   It must complete in under 5 seconds and under 3 taps for a typical expense.
+   Optimise everything else around not slowing this down.
+
+3. NEVER PUNISH THE USER
+   No red-dominant dashboards, no shame language, no streaks that break, no "you
+   failed" states. Over-budget is shown in neutral or amber ink with a
+   reallocation framing, never as a failure.
+
+4. EVERY INSIGHT CARRIES AN ACTION
+   A number on screen with no available next step does not ship.
+   Not this:  "EUR 312 on restaurants"
+   This:      "EUR 312 on restaurants - EUR 90 more than your usual month.
+               Set a EUR 250 cap?"
+
+5. ZERO MAINTENANCE DEBT
+   No daily task besides logging. No reconciliation, no month-end close, no
+   mandatory review.
+
+6. OFFLINE IS THE DEFAULT ASSUMPTION
+   Not a degraded mode.
+
+
+--------------------------------------------------------------------------------
+3. TECH CONSTRAINTS
+--------------------------------------------------------------------------------
+
+- Responsive web app, mobile-first. Design at 390px width first, then scale up.
+- Installable PWA: web app manifest, service worker, offline-capable,
+  home-screen icon, standalone display mode.
+- Persistence: IndexedDB (via a thin wrapper) for records; localStorage for
+  settings. No backend, no network calls at runtime.
+- No authentication of any kind.
+- Must work fully offline on first load after install.
+- Light and dark mode, both explicitly designed. Dark is not an inverted light.
+- Touch targets minimum 44x44px. Primary actions in the thumb-reachable bottom
+  half of the screen.
+
+
+--------------------------------------------------------------------------------
+4. DATA MODEL
+--------------------------------------------------------------------------------
+
+Expense
+  id               string (uuid)
+  amount           number     - minor units (cents), integer, never float
+  currency         string     - single app-wide currency, default EUR
+  categoryId       string
+  note             string     - optional, max 120 chars
+  date             ISO date   - defaults to today
+  createdAt        ISO datetime
+  isRecurringHint  boolean    - set by the app when a repeat pattern is detected
+
+Category
+  id           string
+  name         string
+  emoji        string        - single emoji as the icon; no icon library needed
+  colorSlot    1..8          - index into the fixed palette in section 9
+  monthlyCap   number|null   - minor units; null means untracked
+  isArchived   boolean
+  sortWeight   number        - recency-driven, see section 5
+
+Settings
+  currency, currencySymbol, weekStartsOn, theme (system|light|dark),
+  monthStartDay (default 1)
+
+Store amounts as integer minor units throughout. Format only at the render
+boundary.
+
+
+--------------------------------------------------------------------------------
+5. THE CORE FLOW: ADD AN EXPENSE
+--------------------------------------------------------------------------------
+
+This is the screen that decides whether the product survives. Build it first and
+build it carefully.
+
+ENTRY POINT
+  A persistent bottom-right floating action button on every screen. Plus: on cold
+  start, if no expense has been logged today, open directly into the add sheet.
+  That behaviour is dismissable with one tap and must never trap the user.
+
+THE SHEET, TOP TO BOTTOM
+
+  AMOUNT
+    A large numeric display (>=40px), filled by a CUSTOM IN-APP NUMERIC KEYPAD,
+    not the OS keyboard. Reasons: no keyboard-open latency, no layout jump, large
+    digit touch targets, and room for decimal and backspace keys. The keypad
+    occupies the bottom ~45% of the sheet. The amount field is focused on open, so
+    the user can start typing digits immediately with zero taps spent on focus.
+
+  CATEGORY
+    A horizontally scrollable row of emoji + label chips directly above the
+    keypad. ORDERED BY A RECENCY-FREQUENCY SCORE, not alphabetically:
+        sortWeight = (uses in last 30 days) + (3 if used in last 48h)
+    After a week of use the right category is almost always in the first three
+    chips. The selected chip fills with its category color. The last chip in the
+    row is a "+" to create a category inline.
+
+  DATE
+    A single line reading "Today", tappable to reveal Yesterday and a date
+    picker. Defaults to today, correct >90% of the time, so it normally costs
+    zero taps.
+
+  NOTE
+    Collapsed to a single "Add note" text link. Never expanded by default.
+
+  SAVE
+    Full-width primary button. Enabled as soon as amount > 0 and a category is
+    selected. SAVING DOES NOT NAVIGATE AWAY: it saves, fires a light haptic,
+    shows a 1.5s inline confirmation with a single UNDO affordance, then resets
+    the sheet for the next entry. Users often log 2-3 expenses in one sitting;
+    forcing a re-open per expense is the most common friction in existing apps.
+
+TARGET: amount -> category chip -> Save = 3 taps.
+
+ALSO REQUIRED
+  Swipe-down to dismiss the sheet. Drafts are not persisted, so an abandoned
+  sheet leaves no state to clean up.
+
+
+--------------------------------------------------------------------------------
+6. SCREENS
+--------------------------------------------------------------------------------
+
+Four screens, flat bottom tab bar. No navigation deeper than two levels.
+
+6.1 TODAY / HOME (default tab)
+
+  The answer to "am I OK right now?" in one glance, above the fold.
+
+  - HERO FIGURE: amount spent this month, as a large proportional-figure number
+    with the currency symbol at reduced weight. Below it, one line of secondary
+    ink comparing to the same point last month ("EUR 84 less than this time last
+    month").
+  - ONE HORIZONTAL BUDGET METER for the month, shown only if any category has a
+    cap or a total cap is set. Neutral fill; amber past 100%; never red.
+  - TODAY'S LIST: expenses logged today, newest first. Each row = emoji,
+    category, note, amount. Swipe-left to delete (with Undo toast), tap to edit.
+  - ONE INSIGHT CARD, at most one at a time (see section 8). If there is no
+    useful insight, render nothing. An empty slot beats a filler card.
+
+  FIRST-RUN STATE (no data at all)
+    Hero shows 0. One line: "Log your first expense." The FAB pulses once. No
+    illustration, no tutorial, no tour, nothing else on screen. The user's first
+    tap should be the add button.
+
+6.2 HISTORY
+
+  - Grouped by day with a day subtotal on each group header. Infinite scroll.
+  - Month selector at the top, horizontal and swipeable between months.
+  - Filters in a single row: category multi-select, amount range. Search across
+    notes.
+  - Each row tappable to edit, swipeable to delete.
+
+6.3 INSIGHTS
+
+  - CATEGORY BREAKDOWN for the selected month: a horizontal bar chart, sorted
+    descending, one bar per category. Bars, not a donut - bars support direct
+    value labels and rank comparison, which is the actual question ("what's
+    biggest, and by how much"). Cap at the top 5 categories plus an "Other" row.
+    Never render more than 6 bars.
+  - SPENDING OVER TIME: a line chart of daily cumulative spend for the current
+    month, with the previous month as a second muted line for comparison. Single
+    y-axis. Never a dual-axis chart.
+  - PER-CATEGORY TREND: tapping a bar drills into that category's monthly totals
+    for the last 6 months as a small bar chart.
+  - Every chart has a TABLE VIEW TOGGLE, so no value is available only through
+    color.
+
+6.4 SETTINGS
+
+  Currency, month start day, theme, category management (rename / reorder /
+  archive / set cap), EXPORT TO CSV, EXPORT AND IMPORT FULL JSON BACKUP, and
+  delete all data.
+
+  Export is required, not optional. It is the trust guarantee that replaces
+  having an account, and the only migration path off the device.
+
+
+--------------------------------------------------------------------------------
+7. BUDGETS, FRAMED NON-PUNITIVELY
+--------------------------------------------------------------------------------
+
+- Caps are PER CATEGORY and OPTIONAL. No forced budgeting exercise, ever.
+- A cap is only ever offered contextually, from an insight card, once the app has
+  enough data to suggest a realistic number. Never demanded during setup.
+- SUGGESTED, NOT BLANK: when offering a cap, prefill it with the user's own
+  median monthly spend for that category, rounded. A blank budget field asks a
+  question the user cannot answer; a prefilled one asks them to nudge a number.
+- STATES:
+    Under cap -> neutral fill, remaining amount as the primary figure
+                 ("EUR 60 left").
+    Over cap  -> amber fill, reallocation framing ("EUR 40 over - trim here or
+                 take it from Entertainment"), with the over-amount in secondary
+                 ink. Never red, never an exclamation icon, never "you exceeded".
+- A CAP RESETS CLEANLY EACH MONTH WITH NO MEMORY OF PAST FAILURES. Do not build
+  streak counters, monthly grades, or historical compliance scores - these are
+  the mechanism behind the abandonment guilt cycle.
+
+
+--------------------------------------------------------------------------------
+8. INSIGHT ENGINE
+--------------------------------------------------------------------------------
+
+A small deterministic rules engine. No AI, no external calls. Each rule outputs
+at most one card; each card carries exactly one primary action. Show at most one
+card at a time, highest priority first. A card is dismissable and does not
+reappear for 14 days. Below a rule's data minimum, stay silent.
+
+RULE: Category spike
+  Trigger: >=2 months history; category is >=30% above its median
+  Copy:    "Groceries is EUR 90 above your usual month."
+  Action:  "Set a EUR {median} cap"
+
+RULE: Cap opportunity
+  Trigger: >=1 month history; category has no cap and is a top-3 spender
+  Copy:    "Food is your biggest category at EUR {x}/month."
+  Action:  "Set a cap"
+
+RULE: Recurring detected
+  Trigger: same amount +/-5%, same category, 2+ months in a row
+  Copy:    "Looks like a EUR {x} monthly repeat."
+  Action:  "Mark as recurring"
+
+RULE: Quiet win
+  Trigger: month-to-date below the previous month at the same day
+  Copy:    "You're EUR {x} under last month's pace."
+  Action:  Dismiss only - no action needed
+
+RULE: Uncategorised drift
+  Trigger: >20% of the month's spend in one catch-all category
+  Copy:    "A lot is landing in Other."
+  Action:  "Split into categories"
+
+Include the QUIET WIN rule specifically. An insight surface that only ever
+delivers bad news is the thing users stop opening.
+
+
+--------------------------------------------------------------------------------
+9. VISUAL DESIGN SYSTEM
+--------------------------------------------------------------------------------
+
+TYPOGRAPHY
+  System sans only: system-ui, -apple-system, "Segoe UI", sans-serif. No display
+  or serif face. Large standalone numbers (hero figure, amount input) use default
+  proportional figures. Use font-variant-numeric: tabular-nums ONLY in list
+  columns and axis ticks where digits must align vertically.
+
+CATEGORY COLORS - use this fixed order. Do not generate or cycle hues.
+Assign by category creation order. The color follows the category permanently and
+never changes when a filter changes the visible set.
+
+  Slot  Hue        Light      Dark
+  1     blue       #2a78d6    #3987e5
+  2     orange     #eb6834    #d95926
+  3     aqua       #1baf7a    #199e70
+  4     yellow     #eda100    #c98500
+  5     magenta    #e87ba4    #d55181
+  6     green      #008300    #008300
+  7     violet     #4a3aa7    #9085e9
+  8     red        #e34948    #e66767
+
+A 9th category does not get a new hue - it uses its emoji as identity and folds
+into "Other" in charts. This is why charts cap at 6 bars.
+
+CHROME AND INK
+
+  Role                 Light      Dark
+  Surface              #fcfcfb    #1a1a19
+  Page plane           #f9f9f7    #0d0d0d
+  Primary ink          #0b0b0b    #ffffff
+  Secondary ink        #52514e    #c3c2b7
+  Muted (axis/labels)  #898781    #898781
+  Gridline             #e1e0d9    #2c2c2a
+  Baseline / axis      #c3c2b7    #383835
+  Positive delta       #006300    #0ca30c
+  Amber (over cap)     #fab219    #fab219
+
+Amber and any status color always ship with a text label - never color alone.
+
+CHART RULES
+  2px lines. >=8px hover markers. 4px rounded bar ends anchored to the baseline.
+  A 2px surface gap between adjacent fills. Recessive hairline grid. Direct value
+  labels on bars, not on every point of a line. A tooltip on hover/tap for every
+  chart. One y-axis, always.
+
+MOTION
+  150-200ms ease-out for sheet and state transitions. Nothing decorative.
+  Respect prefers-reduced-motion.
+
+
+--------------------------------------------------------------------------------
+10. ACCESSIBILITY
+--------------------------------------------------------------------------------
+
+- All text meets 4.5:1 contrast against its surface; large figures meet 3:1.
+- Color is never the sole carrier of meaning: charts have a legend for 2+ series
+  plus a table view; category identity is carried by emoji + label as well as
+  color.
+- Full keyboard operability at desktop widths, including numeric entry.
+- Semantic HTML, labelled form controls, live-region announcements for
+  save/undo.
+- Respect prefers-reduced-motion and prefers-color-scheme.
+
+
+--------------------------------------------------------------------------------
+11. EXPLICITLY OUT OF SCOPE
+--------------------------------------------------------------------------------
+
+State these as hard constraints so the build does not drift.
+
+- No bank/account linking, no Plaid/SaltEdge/open banking, no receipt OCR.
+- No user accounts, login, cloud sync, or server component of any kind.
+- No income tracking, net worth, investments, debt payoff, or bill pay.
+- No shared or household accounts, no multi-user features.
+- No multi-currency conversion. One currency, app-wide.
+- No gamification: no streaks, badges, points, levels, or monthly grades.
+- No ads, no upsell surfaces, no paywall.
+- No onboarding wizard, tour, tooltip walkthrough, or feature carousel.
+
+
+--------------------------------------------------------------------------------
+12. ACCEPTANCE CRITERIA
+--------------------------------------------------------------------------------
+
+The build is done when all of these hold.
+
+1.  From a cold first open, an expense can be saved in <=3 taps and <=5 seconds,
+    with no signup, wizard, or configuration step preceding it.
+2.  Logging three expenses in a row requires opening the add sheet ONCE.
+3.  Every destructive action (delete expense, delete category) has a working
+    Undo.
+4.  The app loads and functions fully with the network disabled, and is
+    installable to the home screen on iOS Safari and Android Chrome.
+5.  Data survives a full app close, a device restart, and a browser update.
+6.  CSV and JSON export both produce a file that round-trips through import
+    without loss.
+7.  No screen shows red as a dominant state color, and no copy anywhere blames
+    the user. Grep the build for: "failed", "exceeded", "you should",
+    "don't forget".
+8.  Every chart has a working tooltip and a table-view toggle.
+9.  Light and dark mode are both visually checked against real data.
+10. With zero data, every screen has a deliberate empty state. None is blank or
+    broken.
+
+
+--------------------------------------------------------------------------------
+13. BUILD ORDER
+--------------------------------------------------------------------------------
+
+Ship in this sequence. Each step is independently usable.
+
+1.  Data layer (IndexedDB wrapper) plus a default category seed set.
+2.  Add-expense sheet with the custom keypad. Polish this before anything else.
+3.  Home screen: hero figure, today's list, swipe-delete with Undo.
+4.  History screen with month selector and filters.
+5.  Category management plus optional caps in Settings.
+6.  Insights screen with the category bar chart and the month line chart.
+7.  Insight engine rules from section 8.
+8.  PWA shell: manifest, service worker, offline, install prompt.
+9.  Export and import.
+10. Accessibility and dark-mode pass against real data.
+
+
+--------------------------------------------------------------------------------
+14. HOW TO VERIFY THE FINISHED BUILD
+--------------------------------------------------------------------------------
+
+Walk the acceptance criteria in order on a real phone, not a desktop viewport.
+
+- Time criterion 1 with a stopwatch. If it is over 5 seconds, the add sheet is
+  wrong and nothing else matters yet.
+- Enter about 30 expenses across 4 categories over a couple of simulated months
+  (temporarily allow back-dating in the date picker) so the insight rules and
+  charts fire. Several rules stay silent below their data minimum, so an
+  untested-looking Insights screen may simply be behaving correctly.
+- Put the device in airplane mode, force-quit, reopen. Confirm full function and
+  intact data.
+- Export JSON, delete all data, re-import. Confirm a clean round trip.
+- Toggle OS dark mode and re-check every screen with data present.
+
+================================================================================
+END
+================================================================================

@@ -147,11 +147,6 @@ ol {
   transition: color var(--t-fast) var(--ease);
 }
 
-/* The add button sits bottom-right, so the last tab keeps clear of it. */
-.tab:last-child {
-  margin-right: 64px;
-}
-
 .tab[aria-current='page'] {
   color: var(--ink);
   font-weight: 600;

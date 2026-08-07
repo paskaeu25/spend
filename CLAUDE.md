@@ -83,6 +83,13 @@ category.
 - **Money is integer minor units (cents) everywhere.** `Expense.amount` is always an
   integer; formatting happens only in `src/lib/money.ts`. Never introduce a float amount
   or format money outside that module.
+- **`Expense.amount` is always what the user spent**, including on a split row — one paid
+  from a joint account (Settings → Shared expenses, off by default). Such a row also
+  carries `fullAmount` and `sharePct`, but those are annotation: they exist so the add
+  sheet can reopen the row as the bill that was typed and so History can show a `½` mark.
+  No selector, cap, chart, insight or export should ever multiply by `sharePct` — doing
+  that would double-apply the split. `src/sheet/SplitRow.tsx` and `splitShare` in money.ts
+  are the only places the arithmetic happens.
 - **Months always go through `src/lib/dates.ts`'s `monthRange`**, which honours
   `settings.monthStartDay` (1–28, spec section on custom month boundaries). The hero
   figure, caps, charts, and insight rules all derive their "this month" window from the

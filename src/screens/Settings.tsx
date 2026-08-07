@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Category, Expense, ThemePref } from '../types'
-import { formatMoney } from '../lib/money'
+import { clampSharePct, formatMoney } from '../lib/money'
 import {
   backupFilename,
   downloadFile,
@@ -47,6 +47,9 @@ export function Settings() {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [installable, setInstallable] = useState(canInstall())
   const [newName, setNewName] = useState('')
+  // Held as text so the field can be empty mid-edit instead of snapping to a
+  // clamped number under the cursor.
+  const [shareText, setShareText] = useState(String(settings.defaultSharePct))
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => subscribeInstall(() => setInstallable(canInstall())), [])
@@ -222,6 +225,63 @@ export function Settings() {
           </select>
           <span className="field-hint">Set this to your payday if that is how you think about a month.</span>
         </label>
+
+        <div className="field">
+          <span className="field-label" id="split-label">
+            Shared expenses
+          </span>
+          <div className="segmented" role="group" aria-labelledby="split-label">
+            <button
+              type="button"
+              className={`segmented-btn${settings.splitEnabled ? '' : ' is-active'}`}
+              aria-pressed={!settings.splitEnabled}
+              onClick={() => setSettings({ splitEnabled: false })}
+            >
+              Off
+            </button>
+            <button
+              type="button"
+              className={`segmented-btn${settings.splitEnabled ? ' is-active' : ''}`}
+              aria-pressed={settings.splitEnabled}
+              onClick={() => setSettings({ splitEnabled: true })}
+            >
+              On
+            </button>
+          </div>
+          <span className="field-hint">
+            Adds a Split control to the add sheet, for anything paid from a joint account. You enter
+            the whole bill and only your share is logged.
+          </span>
+        </div>
+
+        {settings.splitEnabled && (
+          <label className="field">
+            <span className="field-label">Your usual share (%)</span>
+            <input
+              className="field-input field-input-pct"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={99}
+              value={shareText}
+              onChange={(e) => {
+                setShareText(e.target.value)
+                const n = Number(e.target.value)
+                if (e.target.value !== '' && n >= 1 && n <= 99) {
+                  setSettings({ defaultSharePct: Math.trunc(n) })
+                }
+              }}
+              onBlur={() => {
+                const pct = clampSharePct(shareText, settings.defaultSharePct)
+                setSettings({ defaultSharePct: pct })
+                setShareText(String(pct))
+              }}
+            />
+            <span className="field-hint">
+              What one tap on Split applies. Other shares are a tap away in the sheet itself.
+            </span>
+          </label>
+        )}
 
         <div className="field">
           <span className="field-label" id="theme-label">

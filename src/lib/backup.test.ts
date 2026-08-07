@@ -35,6 +35,20 @@ const expenses: Expense[] = [
     createdAt: '2026-07-31T18:00:00.000Z',
     isRecurringHint: true,
   },
+  {
+    id: 'e3',
+    amount: 2_000,
+    currency: 'EUR',
+    categoryId: 'cat-groceries',
+    note: 'Joint account',
+    date: '2026-07-20',
+    createdAt: '2026-07-20T12:00:00.000Z',
+    isRecurringHint: false,
+    // Half of a €40 bill. The pair has to survive both formats, or reopening the
+    // row after a restore would edit it as a €20 expense.
+    fullAmount: 4_000,
+    sharePct: 50,
+  },
 ]
 
 describe('CSV primitives', () => {
@@ -120,6 +134,19 @@ describe('CSV backup', () => {
 
   it('refuses a CSV with no date or amount column', () => {
     expect(() => fromCSVBackup('name,total\nfoo,1')).toThrow()
+  })
+
+  it('drops half a split pair rather than importing a share with no bill', () => {
+    const csv =
+      'date,amount,category,fullAmount,sharePct\n' +
+      '2026-08-04,20.00,Groceries,,50\n' +
+      '2026-08-05,20.00,Groceries,40.00,\n' +
+      '2026-08-06,20.00,Groceries,40.00,50'
+    const result = fromCSVBackup(csv)
+    expect(result.expenses.map((e) => e.sharePct)).toEqual([undefined, undefined, 50])
+    expect(result.expenses.map((e) => e.fullAmount)).toEqual([undefined, undefined, 4_000])
+    // The amount stands on its own either way — nothing is lost but the annotation.
+    expect(result.expenses.map((e) => e.amount)).toEqual([2_000, 2_000, 2_000])
   })
 })
 

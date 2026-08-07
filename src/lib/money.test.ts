@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   amountToMinor,
+  clampSharePct,
   displayAmount,
   emptyAmount,
   formatMoney,
@@ -10,6 +11,7 @@ import {
   minorToDecimalString,
   parseMoneyInput,
   roundCapSuggestion,
+  splitShare,
   type AmountEntry,
   type KeypadKey,
 } from './money'
@@ -111,6 +113,26 @@ describe('parsing and helpers', () => {
     expect(roundCapSuggestion(24_312)).toBe(24_000)
     expect(roundCapSuggestion(31_800)).toBe(32_000)
     expect(roundCapSuggestion(0)).toBe(500)
+  })
+
+  it('takes a share of a shared bill and stays on whole cents', () => {
+    expect(splitShare(4_000, 50)).toBe(2_000)
+    expect(splitShare(1_299, 50)).toBe(650)
+    expect(splitShare(999, 33)).toBe(330)
+    expect(splitShare(1_000, 99)).toBe(990)
+    // A half-cent goes to the person keeping the log; there is no second party here.
+    expect(splitShare(5, 50)).toBe(3)
+    expect(splitShare(0, 50)).toBe(0)
+  })
+
+  it('clamps a share to a whole 1-99', () => {
+    expect(clampSharePct(50)).toBe(50)
+    expect(clampSharePct('33')).toBe(33)
+    expect(clampSharePct(33.7)).toBe(33)
+    expect(clampSharePct(0)).toBe(50)
+    expect(clampSharePct(140)).toBe(99)
+    expect(clampSharePct('')).toBe(50)
+    expect(clampSharePct('abc', 40)).toBe(40)
   })
 
   it('takes the median of an even and an odd list', () => {

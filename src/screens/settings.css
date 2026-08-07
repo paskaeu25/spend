@@ -54,6 +54,10 @@
   color: var(--ink);
 }
 
+.field-input-pct {
+  width: 96px;
+}
+
 .field-input-emoji {
   width: 72px;
   text-align: center;

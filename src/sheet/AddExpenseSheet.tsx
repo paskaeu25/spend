@@ -6,6 +6,7 @@ import { CategoryChips } from './CategoryChips'
 import { DateRow } from './DateRow'
 import { Keypad } from './Keypad'
 import { NoteField } from './NoteField'
+import { SplitRow } from './SplitRow'
 import {
   type AmountEntry,
   amountToMinor,
@@ -13,6 +14,7 @@ import {
   formatMoney,
   keypadReducer,
   minorToAmount,
+  splitShare,
   type KeypadKey,
 } from '../lib/money'
 import { todayISO } from '../lib/dates'
@@ -46,6 +48,7 @@ interface SavedState {
   /** Kept so Undo can put the values back for a quick correction. */
   entry: AmountEntry
   note: string
+  sharePct: number | null
 }
 
 export function AddExpenseSheet({ open, onClose, editing }: AddExpenseSheetProps) {
@@ -57,6 +60,8 @@ export function AddExpenseSheet({ open, onClose, editing }: AddExpenseSheetProps
   const [categoryId, setCategoryId] = useState<string | null>(null)
   const [date, setDate] = useState(todayISO)
   const [note, setNote] = useState('')
+  /** Null unless this expense is a share of something paid from a joint account. */
+  const [sharePct, setSharePct] = useState<number | null>(null)
   const [saved, setSaved] = useState<SavedState | null>(null)
   const [chipIds, setChipIds] = useState<string[]>([])
   /** Bumped after each save so the note field remounts collapsed. */
@@ -82,10 +87,13 @@ export function AddExpenseSheet({ open, onClose, editing }: AddExpenseSheetProps
       // Frozen for the session, so chips never reshuffle under the user's finger
       // between one entry and the next.
       setChipIds(chipOrder(categories, expenses).map((c) => c.id))
-      setEntry(editing ? minorToAmount(editing.amount) : emptyAmount)
+      // A split row is edited as the bill it came from, not as the stored share —
+      // otherwise reopening it would halve the same expense a second time.
+      setEntry(editing ? minorToAmount(editing.fullAmount ?? editing.amount) : emptyAmount)
       setCategoryId(editing?.categoryId ?? null)
       setDate(editing?.date ?? todayISO())
       setNote(editing?.note ?? '')
+      setSharePct(editing?.sharePct ?? null)
       setSaved(null)
       setResetCount(0)
     }
@@ -102,9 +110,15 @@ export function AddExpenseSheet({ open, onClose, editing }: AddExpenseSheetProps
     return [...snapshot, ...added]
   }, [categories, chipIds])
 
+  /** What was typed: the whole bill when a split is on, otherwise the expense. */
   const minor = amountToMinor(entry)
-  const canSave = minor > 0 && !!categoryId
+  /** What actually gets logged. */
+  const shareMinor = sharePct == null ? minor : splitShare(minor, sharePct)
+  const canSave = shareMinor > 0 && !!categoryId
   const selectedCategory = categories.find((c) => c.id === categoryId) ?? null
+  // Still offered on a row that was split before the setting was switched back off,
+  // so an existing split is never stranded with no way to change it.
+  const showSplit = settings.splitEnabled || sharePct != null
 
   const dispatchKey = useCallback((key: KeypadKey) => {
     setEntry((prev) => keypadReducer(prev, key))
@@ -113,9 +127,14 @@ export function AddExpenseSheet({ open, onClose, editing }: AddExpenseSheetProps
   const save = useCallback(() => {
     if (!canSave || !categoryId) return
     const trimmedNote = note.trim().slice(0, 120)
+    const split = sharePct == null ? null : { fullAmount: minor, sharePct }
 
     if (editing) {
-      updateExpense({ ...editing, amount: minor, categoryId, note: trimmedNote, date })
+      const next: Expense = { ...editing, amount: shareMinor, categoryId, note: trimmedNote, date }
+      // Turning the split off has to clear the pair, not leave a stale bill behind.
+      delete next.fullAmount
+      delete next.sharePct
+      updateExpense(split ? { ...next, ...split } : next)
       lightHaptic()
       announce('Changes saved.')
       onClose()
@@ -124,24 +143,29 @@ export function AddExpenseSheet({ open, onClose, editing }: AddExpenseSheetProps
 
     const expense: Expense = {
       id: uuid(),
-      amount: minor,
+      amount: shareMinor,
       currency: settings.currency,
       categoryId,
       note: trimmedNote,
       date,
       createdAt: new Date().toISOString(),
       isRecurringHint: false,
+      ...(split ?? {}),
     }
     addExpense(expense)
     lightHaptic()
+    const savedAmount = formatMoney(shareMinor, { symbol: settings.currencySymbol, compact: true })
     announce(
-      `Saved ${formatMoney(minor, { symbol: settings.currencySymbol, compact: true })} to ${
-        selectedCategory?.name ?? 'category'
-      }.`,
+      split
+        ? `Saved your ${split.sharePct}%, ${savedAmount}, to ${selectedCategory?.name ?? 'category'}.`
+        : `Saved ${savedAmount} to ${selectedCategory?.name ?? 'category'}.`,
     )
 
     // Stay put: logging two or three in a sitting should not mean reopening.
-    setSaved({ expense, entry, note: trimmedNote })
+    setSaved({ expense, entry, note: trimmedNote, sharePct })
+    // The split stays on for the next entry, as the category and date do: a run of
+    // rows from the same joint account is the reason it was switched on. It stays
+    // visible in the toggle and under the amount, so it cannot apply unnoticed.
     setEntry(emptyAmount)
     setNote('')
     setResetCount((n) => n + 1)
@@ -157,6 +181,8 @@ export function AddExpenseSheet({ open, onClose, editing }: AddExpenseSheetProps
     entry,
     minor,
     note,
+    shareMinor,
+    sharePct,
     announce,
     onClose,
     selectedCategory,
@@ -188,6 +214,7 @@ export function AddExpenseSheet({ open, onClose, editing }: AddExpenseSheetProps
     setNote(saved.note)
     setCategoryId(saved.expense.categoryId)
     setDate(saved.expense.date)
+    setSharePct(saved.sharePct)
     setSaved(null)
     announce('Undone. The amount is back in the field.')
     amountRef.current?.focus({ preventScroll: true })
@@ -266,10 +293,14 @@ export function AddExpenseSheet({ open, onClose, editing }: AddExpenseSheetProps
           entry={entry}
           symbol={settings.currencySymbol}
           onKeyDown={onAmountKeyDown}
+          split={sharePct == null ? null : { sharePct, shareMinor }}
         />
 
         <div className="meta-row">
           <DateRow value={date} onChange={setDate} />
+          {showSplit && (
+            <SplitRow value={sharePct} defaultPct={settings.defaultSharePct} onChange={setSharePct} />
+          )}
           {/* Remounting on reset is what collapses it again after a save. */}
           <NoteField key={`${session}:${resetCount}`} value={note} onChange={setNote} />
         </div>

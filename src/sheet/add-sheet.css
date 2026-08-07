@@ -19,9 +19,22 @@
   flex: 1;
   min-height: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 2px;
   padding: 8px 0 4px;
+}
+
+/* What will actually be logged, under the bill that was typed. */
+.amount-share {
+  font-size: 0.875rem;
+  color: var(--ink-2);
+}
+
+.amount-share strong {
+  font-weight: 600;
+  color: var(--ink);
 }
 
 .amount {
@@ -123,6 +136,26 @@
   flex: none;
   color: var(--accent-ink);
   font-size: 0.875rem;
+}
+
+/* ---------- Split ---------- */
+
+.split-block {
+  position: relative;
+  flex: none;
+}
+
+.split-toggle.is-split {
+  border-color: var(--accent-ink);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+/* Anchored to its right edge: the block sits mid-row, and the options are wider
+   than it is, so opening from the left would run off a narrow screen. */
+.split-options {
+  left: auto;
+  right: 0;
 }
 
 .note-field {

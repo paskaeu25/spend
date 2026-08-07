@@ -1,9 +1,9 @@
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { act, render, screen, waitFor, within } from '@testing-library/react'
 import { AddExpenseSheet } from './AddExpenseSheet'
 import { Announcer } from '../ui/LiveRegion'
 import { ToastHost } from '../ui/Toast'
-import { deleteAllData, getState, importData, init } from '../store/store'
+import { deleteAllData, getState, importData, init, setSettings } from '../store/store'
 import { todayISO } from '../lib/dates'
 
 const settled = () => new Promise((resolve) => setTimeout(resolve, 20))
@@ -201,6 +201,99 @@ describe('the add-expense sheet', () => {
     tap('Add note')
     const note = screen.getByLabelText('Note') as HTMLInputElement
     expect(note.maxLength).toBe(120)
+  })
+
+  describe('splitting something paid from a joint account', () => {
+    beforeEach(() => {
+      setSettings({ splitEnabled: true, defaultSharePct: 50 })
+    })
+
+    afterEach(() => {
+      setSettings({ splitEnabled: false, defaultSharePct: 50 })
+    })
+
+    it('stays out of the sheet until it is switched on in Settings', () => {
+      setSettings({ splitEnabled: false })
+      renderSheet()
+      expect(screen.queryByRole('button', { name: 'Split' })).toBeNull()
+    })
+
+    it('logs the share and keeps the whole bill beside it', async () => {
+      renderSheet()
+      keypad('40')
+      tap('Split')
+      tapChip(/Groceries/)
+      tap('Save')
+      await settled()
+
+      const [saved] = getState().expenses
+      expect(saved.amount).toBe(2_000)
+      expect(saved.fullAmount).toBe(4_000)
+      expect(saved.sharePct).toBe(50)
+    })
+
+    it('shows what will be logged before it is saved', () => {
+      renderSheet()
+      keypad('13')
+      tap('Split')
+      // The typed figure is still the bill; the share is spelled out under it.
+      expect(amountText()).toContain('13')
+      expect(document.querySelector('.amount-share')?.textContent).toContain('6.50')
+    })
+
+    it('takes a different share from the options and can switch back off', async () => {
+      renderSheet()
+      keypad('30')
+      tap('Split')
+      tap(/Split, your share 50%/)
+      tap(/Your share, 33 percent/)
+      tapChip(/Groceries/)
+      tap('Save')
+      await settled()
+      expect(getState().expenses[0].amount).toBe(990)
+
+      tap('Undo')
+      await settled()
+      tap(/Split, your share 33%/)
+      tap('Off')
+      tap('Save')
+      await settled()
+      const [saved] = getState().expenses
+      expect(saved.amount).toBe(3_000)
+      expect(saved.fullAmount).toBeUndefined()
+      expect(saved.sharePct).toBeUndefined()
+    })
+
+    it('reopens a split row as the bill, not as the stored share', async () => {
+      const split = {
+        id: 'split-me',
+        amount: 2_000,
+        currency: 'EUR',
+        categoryId: 'cat-groceries',
+        note: '',
+        date: todayISO(),
+        createdAt: `${todayISO()}T09:00:00.000Z`,
+        isRecurringHint: false,
+        fullAmount: 4_000,
+        sharePct: 50,
+      }
+      importData({ expenses: [split], categories: getState().categories })
+      await settled()
+
+      render(
+        <Announcer>
+          <ToastHost>
+            <AddExpenseSheet open onClose={() => {}} editing={split} />
+          </ToastHost>
+        </Announcer>,
+      )
+
+      // Halving the stored share again on every edit is the bug this guards.
+      expect(amountText()).toContain('40')
+      tap('Save changes')
+      await settled()
+      expect(getState().expenses[0].amount).toBe(2_000)
+    })
   })
 
   describe('editing an existing expense', () => {

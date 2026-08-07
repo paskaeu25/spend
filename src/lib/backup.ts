@@ -357,6 +357,10 @@ const CSV_COLUMNS = [
   'monthlyCap',
   'archived',
   'sortWeight',
+  // Appended rather than slotted in beside `amount`, so a spreadsheet or script
+  // built against an earlier export still finds every column where it was.
+  'fullAmount',
+  'sharePct',
 ] as const
 
 export function toCSVBackup(data: {
@@ -384,6 +388,8 @@ export function toCSVBackup(data: {
       c?.monthlyCap != null ? minorToDecimalString(c.monthlyCap) : '',
       c?.isArchived ? 'yes' : 'no',
       c ? String(c.sortWeight) : '',
+      e.fullAmount != null ? minorToDecimalString(e.fullAmount) : '',
+      e.sharePct != null ? String(e.sharePct) : '',
     ])
   }
 
@@ -405,6 +411,8 @@ export function toCSVBackup(data: {
       c.monthlyCap != null ? minorToDecimalString(c.monthlyCap) : '',
       c.isArchived ? 'yes' : 'no',
       String(c.sortWeight),
+      '',
+      '',
     ])
   }
 
@@ -435,6 +443,8 @@ export function fromCSVBackup(text: string, fallbackCurrency = 'EUR'): ImportRes
   const iCap = index('monthlyCap')
   const iArchived = index('archived')
   const iSortWeight = index('sortWeight')
+  const iFullAmount = index('fullAmount')
+  const iSharePct = index('sharePct')
 
   const categories = new Map<string, Category>()
   const expenses: Expense[] = []
@@ -476,6 +486,7 @@ export function fromCSVBackup(text: string, fallbackCurrency = 'EUR'): ImportRes
       // in every timezone.
       createdAt: cell(row, iCreatedAt) || new Date(`${date}T12:00:00`).toISOString(),
       isRecurringHint: cell(row, iRecurring).toLowerCase() === 'yes',
+      ...readSplit(parseMoneyInput(cell(row, iFullAmount)), Number(cell(row, iSharePct))),
     })
   })
 
@@ -521,7 +532,24 @@ function normalizeExpense(input: unknown, fallbackCurrency: string): Expense {
     date,
     createdAt: typeof e.createdAt === 'string' ? e.createdAt : new Date(`${date}T12:00:00`).toISOString(),
     isRecurringHint: e.isRecurringHint === true,
+    ...readSplit(e.fullAmount, e.sharePct),
   }
+}
+
+/**
+ * The split pair, or nothing at all. Half a pair is worse than none: a share with
+ * no bill behind it cannot be shown, and a bill with no share would let an edit
+ * reopen the row at the wrong amount.
+ */
+function readSplit(
+  fullMinor: unknown,
+  pct: unknown,
+): { fullAmount: number; sharePct: number } | undefined {
+  const full = Math.round(Number(fullMinor))
+  const share = Math.trunc(Number(pct))
+  if (!Number.isFinite(full) || full <= 0) return undefined
+  if (!Number.isFinite(share) || share < 1 || share > 99) return undefined
+  return { fullAmount: full, sharePct: share }
 }
 
 function placeholderCategory(id: string, order: number): Category {

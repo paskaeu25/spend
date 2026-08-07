@@ -144,6 +144,24 @@ export function minorToDecimalString(minor: number): string {
   return `${negative ? '-' : ''}${Math.floor(abs / 100)}.${String(abs % 100).padStart(2, '0')}`
 }
 
+/* ---------- Splitting a shared payment ---------- */
+
+/**
+ * The user's own share of an amount paid from a joint account, in minor units.
+ * Half-cents round up, so a 50% split of an odd amount keeps the spare cent on
+ * this side — there is no second party in the app for it to disagree with.
+ */
+export function splitShare(fullMinor: number, sharePct: number): number {
+  return Math.round((Math.round(fullMinor) * sharePct) / 100)
+}
+
+/** Any input to a whole 1–99, falling back to an even split. */
+export function clampSharePct(value: unknown, fallback = 50): number {
+  const n = Math.trunc(Number(value))
+  if (!Number.isFinite(n) || n < 1) return fallback
+  return Math.min(n, 99)
+}
+
 /** Rounds up to a tidy figure for suggested caps: nearest 10 units, min 5. */
 export function roundCapSuggestion(minor: number): number {
   if (minor <= 0) return 500

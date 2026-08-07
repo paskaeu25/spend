@@ -14,6 +14,15 @@ interface ExpenseRowProps {
 export function ExpenseRow({ expense, category, symbol, onEdit, onDelete }: ExpenseRowProps) {
   const name = category?.name ?? 'Uncategorised'
   const amount = formatMoney(expense.amount, { symbol, compact: true })
+  // The row shows the share, because that is what was spent. The mark is how the
+  // smaller figure explains itself against a receipt for the whole bill.
+  const split =
+    expense.sharePct != null && expense.fullAmount != null
+      ? {
+          mark: expense.sharePct === 50 ? '½' : `${expense.sharePct}%`,
+          title: `Your ${expense.sharePct}% of ${formatMoney(expense.fullAmount, { symbol, compact: true })}`,
+        }
+      : null
 
   return (
     <li className="expense-row-item">
@@ -33,6 +42,12 @@ export function ExpenseRow({ expense, category, symbol, onEdit, onDelete }: Expe
                 <span className="expense-recurring" title="Recurring">
                   <span aria-hidden="true">↻</span>
                   <span className="sr-only">Recurring</span>
+                </span>
+              )}
+              {split && (
+                <span className="expense-split" title={split.title}>
+                  <span aria-hidden="true">{split.mark}</span>
+                  <span className="sr-only">{split.title}</span>
                 </span>
               )}
             </span>

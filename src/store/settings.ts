@@ -1,4 +1,5 @@
 import type { Settings } from '../types'
+import { clampSharePct } from '../lib/money'
 
 const KEY = 'et.settings'
 
@@ -8,6 +9,8 @@ export const DEFAULT_SETTINGS: Settings = {
   weekStartsOn: 1,
   theme: 'system',
   monthStartDay: 1,
+  splitEnabled: false,
+  defaultSharePct: 50,
 }
 
 /** A short list of common currencies. No conversion — one currency, app-wide. */
@@ -67,6 +70,8 @@ export function normalizeSettings(input: unknown): Settings {
     weekStartsOn: o.weekStartsOn === 0 ? 0 : 1,
     theme: o.theme === 'light' || o.theme === 'dark' ? o.theme : 'system',
     monthStartDay: clampMonthStartDay(o.monthStartDay),
+    splitEnabled: o.splitEnabled === true,
+    defaultSharePct: clampSharePct(o.defaultSharePct),
   }
 }
 

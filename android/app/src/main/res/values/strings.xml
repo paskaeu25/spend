@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">Spend</string>
     <string name="title_activity_main">Spend</string>
-    <string name="package_name">io.github.pavelasb32.spend</string>
-    <string name="custom_url_scheme">io.github.pavelasb32.spend</string>
+    <string name="package_name">io.github.paskaeu25.spend</string>
+    <string name="custom_url_scheme">io.github.paskaeu25.spend</string>
 </resources>

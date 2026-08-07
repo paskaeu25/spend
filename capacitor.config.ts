@@ -6,7 +6,7 @@ import type { CapacitorConfig } from '@capacitor/cli'
  * first principle, not a nicety. Nothing here points at a server.
  */
 const config: CapacitorConfig = {
-  appId: 'io.github.pavelasb32.spend',
+  appId: 'io.github.paskaeu25.spend',
   appName: 'Spend',
   webDir: 'dist',
   android: {

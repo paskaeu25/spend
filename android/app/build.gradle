@@ -24,7 +24,7 @@ def buildVersionName = System.getenv('SPEND_VERSION_NAME') ?: '1.0.0'
 def buildVersionCode = (System.getenv('SPEND_VERSION_CODE') ?: '1') as Integer
 
 android {
-    namespace = "io.github.pavelasb32.spend"
+    namespace = "io.github.paskaeu25.spend"
     compileSdk = rootProject.ext.compileSdkVersion
 
     if (hasSigningKey) {
@@ -41,7 +41,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "io.github.pavelasb32.spend"
+        applicationId "io.github.paskaeu25.spend"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode buildVersionCode

@@ -1,4 +1,4 @@
-package io.github.pavelasb32.spend;
+package io.github.paskaeu25.spend;
 
 import com.getcapacitor.BridgeActivity;
 

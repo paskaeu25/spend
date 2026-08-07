@@ -80,15 +80,49 @@ const expect = (cond, msg) => {
   if (!cond) throw new Error(msg)
 }
 
+/**
+ * Emits a GitHub Actions annotation. Annotations are attached to the run rather
+ * than buried in the log, so a failure is visible on the run page — and readable
+ * through the public API, which the log itself is not.
+ */
+function annotate(title, message) {
+  if (!process.env.GITHUB_ACTIONS) return
+  const esc = (s) =>
+    String(s).replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A').slice(0, 4000)
+  console.log(`::error title=${esc(title)}::${esc(message)}`)
+}
+
 async function check(what, fn) {
   try {
     await fn()
     results.push({ ok: true, what })
     console.log(`  ok    ${what}`)
   } catch (e) {
-    results.push({ ok: false, what, why: e.message })
+    // What the page actually looked like at the moment of failure, which is the
+    // part a bare stack trace never tells you.
+    let context = ''
+    try {
+      context = await page.evaluate(() => {
+        const dialog = document.querySelector('[role="dialog"]')
+        return [
+          `url: ${location.href}`,
+          `dialogs: ${document.querySelectorAll('[role="dialog"]').length}` +
+            (dialog ? ` (${dialog.getAttribute('aria-label')})` : ''),
+          `tab: ${document.querySelector('[aria-current="page"]')?.textContent?.trim() ?? 'none'}`,
+          `rows: ${document.querySelectorAll('.expense-row').length}`,
+          `body: ${document.body.innerText.replace(/\s+/g, ' ').slice(0, 600)}`,
+        ].join('\n')
+      })
+    } catch {
+      context = '(page unavailable)'
+    }
+
+    results.push({ ok: false, what, why: e.message, context })
     console.log(`  FAIL  ${what}`)
-    for (const line of e.message.split('\n').slice(0, 6)) console.log(`        ${line}`)
+    for (const line of `${e.message}\n${context}`.split('\n').slice(0, 12)) {
+      console.log(`        ${line}`)
+    }
+    annotate(`smoke: ${what}`, `${e.message}\n${context}`)
   }
 }
 
@@ -257,6 +291,10 @@ const failed = results.filter((r) => !r.ok)
 if (failed.length) {
   console.log('\nfailures:')
   for (const f of failed) console.log(`  ${f.what}\n    ${f.why.split('\n')[0]}`)
+  annotate(
+    `${failed.length} of ${results.length} smoke checks failed`,
+    failed.map((f) => `- ${f.what}: ${f.why.split('\n')[0]}`).join('\n'),
+  )
 }
 console.log(`\n${results.length - failed.length}/${results.length} passed`)
 process.exit(failed.length ? 1 : 0)

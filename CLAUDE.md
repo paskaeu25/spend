@@ -128,6 +128,16 @@ a media query. `src/ui/useTheme.ts` handles the `system`/`light`/`dark` preferen
   release after an app update. CI (`.github/workflows/ci.yml`) asserts the native `dist/`
   contains none of `sw.js`, `registerSW.js`, `manifest.webmanifest`.
 
+The one runtime behaviour that has to fork per platform is handing the user a file, which
+lives in `src/lib/saveFile.ts`. On the web an `<a download>` click at a blob: URL is the
+whole story; inside the Capacitor WebView it is a silent no-op (no download manager behind
+the WebView), which is exactly how both export buttons came to do nothing on Android. The
+native path writes to `Directory.Cache` via `@capacitor/filesystem` and hands the URI to
+`@capacitor/share` — cache, so no storage permission is involved, and the share sheet is
+what decides where the copy lands. Native detection is the injected `window.Capacitor`
+bridge, and both plugins are imported lazily so the web bundle never pulls them in. A
+dismissed share sheet rejects with "Share canceled" — a choice, not an error to report.
+
 ### Overlays and back-dismiss are the trickiest seam in the app
 
 `src/ui/useBackDismiss.ts` holds one shared `history` entry for the whole overlay stack

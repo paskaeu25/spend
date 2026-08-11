@@ -18,7 +18,7 @@ import {
 } from '../store/selectors'
 import { useStore } from '../store/store'
 import { ChartFrame, LegendItem } from '../charts/ChartFrame'
-import { HBarChart, type BarDatum } from '../charts/HBarChart'
+import { HBarChart, OTHER_ID, type BarDatum } from '../charts/HBarChart'
 import { LineChart } from '../charts/LineChart'
 import { MiniBarChart } from '../charts/MiniBarChart'
 import './insights.css'
@@ -32,6 +32,8 @@ export function Insights() {
 
   const [monthStart, setMonthStart] = useState(() => monthRange(today, settings.monthStartDay).start)
   const [drillId, setDrillId] = useState<string | null>(null)
+  /* The pooled "Other" row is a summary, not a lid: it opens. */
+  const [showAllCategories, setShowAllCategories] = useState(false)
   const stripRef = useRef<HTMLDivElement>(null)
   const drillRef = useRef<HTMLDivElement>(null)
 
@@ -64,10 +66,14 @@ export function Insights() {
 
   const cats = useMemo(() => categoryMap(categories), [categories])
 
-  /* Top five categories plus a pooled "Other" row — never more than six bars. */
-  const bars = useMemo<BarDatum[]>(() => {
+  /*
+   * Top five categories plus a pooled "Other" row — six bars is as much rank
+   * comparison as a phone screen carries at a glance. Tapping Other unpools it,
+   * so the tail is a tap away rather than hidden.
+   */
+  const allBars = useMemo<BarDatum[]>(() => {
     const totals = totalsByCategory(expenses, month)
-    const named = totals.map((t) => {
+    return totals.map((t) => {
       const category = cats.get(t.categoryId)
       return {
         id: t.categoryId,
@@ -77,21 +83,29 @@ export function Insights() {
         value: t.total,
       }
     })
-    if (named.length <= MAX_BARS) return named
-    const head = named.slice(0, MAX_BARS - 1)
-    const rest = named.slice(MAX_BARS - 1)
+  }, [expenses, month, cats])
+
+  const pooledCount = Math.max(0, allBars.length - (MAX_BARS - 1))
+  const canPool = allBars.length > MAX_BARS
+  const isPooled = canPool && !showAllCategories
+
+  const bars = useMemo<BarDatum[]>(() => {
+    if (!isPooled) return allBars
+    const head = allBars.slice(0, MAX_BARS - 1)
+    const rest = allBars.slice(MAX_BARS - 1)
     return [
       ...head,
       {
-        id: 'other',
+        id: OTHER_ID,
         label: `Other (${rest.length})`,
         emoji: '▫️',
         colorSlot: null,
         value: rest.reduce((n, r) => n + r.value, 0),
       },
     ]
-  }, [expenses, month, cats])
+  }, [allBars, isPooled])
 
+  /* Pooled or not, the bars cover every category in the month. */
   const monthTotal = useMemo(() => bars.reduce((n, b) => n + b.value, 0), [bars])
 
   const lines = useMemo(
@@ -165,8 +179,26 @@ export function Insights() {
               <p className="empty">Nothing logged in this month.</p>
             ) : (
               <>
-                <HBarChart data={bars} symbol={symbol} onSelect={setDrillId} />
-                <p className="chart-hint">Tap a category for its last six months.</p>
+                <HBarChart
+                  data={bars}
+                  symbol={symbol}
+                  onSelect={setDrillId}
+                  {...(isPooled ? { onExpandOther: () => setShowAllCategories(true) } : {})}
+                />
+                <p className="chart-hint">
+                  {isPooled
+                    ? `Tap a category for its last six months, or Other for the remaining ${pooledCount}.`
+                    : 'Tap a category for its last six months.'}
+                </p>
+                {canPool && !isPooled && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary chart-collapse"
+                    onClick={() => setShowAllCategories(false)}
+                  >
+                    Show top {MAX_BARS - 1} only
+                  </button>
+                )}
               </>
             )}
           </ChartFrame>

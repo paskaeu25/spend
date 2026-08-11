@@ -147,6 +147,37 @@ describe('the app shell', () => {
       expect(within(breakdown).getAllByRole('listitem').length).toBeLessThanOrEqual(6)
     })
 
+    /* The pooled row is a summary, not a lid: tapping it shows the tail. */
+    it('unpools Other into one bar per category, and pools it again', async () => {
+      // Eight categories in the month, so five bars plus a pooled row of three.
+      const categories = getState().categories
+      importData({
+        categories,
+        expenses: categories.map((c, i) =>
+          expense({ amount: (8 - i) * 1_000, date: todayISO(), categoryId: c.id, id: `e-${c.id}` }),
+        ),
+      })
+      await settled()
+
+      render(<App />)
+      goTo('Insights')
+      const breakdown = () => screen.getByRole('region', { name: 'Where it went' })
+      const pooledRow = () => within(breakdown()).queryByRole('button', { name: /Other \(\d+\)/ })
+
+      const row = pooledRow()!
+      expect(row).toBeTruthy()
+      const pooled = within(breakdown()).getAllByRole('listitem').length
+      const hidden = Number(row.textContent!.match(/Other \((\d+)\)/)![1])
+
+      act(() => row.click())
+      expect(within(breakdown()).getAllByRole('listitem')).toHaveLength(pooled - 1 + hidden)
+      expect(pooledRow()).toBeNull()
+
+      act(() => within(breakdown()).getByRole('button', { name: /Show top/ }).click())
+      expect(within(breakdown()).getAllByRole('listitem')).toHaveLength(pooled)
+      expect(pooledRow()).toBeTruthy()
+    })
+
     it('drills into a category for its last six months', () => {
       render(<App />)
       goTo('Insights')

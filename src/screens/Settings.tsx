@@ -3,13 +3,13 @@ import type { Category, Expense, ThemePref } from '../types'
 import { clampSharePct, formatMoney } from '../lib/money'
 import {
   backupFilename,
-  downloadFile,
   fromCSVBackup,
   fromJSONBackup,
   toCSVBackup,
   toJSONBackup,
   type ConversionReport,
 } from '../lib/backup'
+import { saveFile } from '../lib/saveFile'
 import { CURRENCIES, symbolFor } from '../store/settings'
 import {
   addCategory,
@@ -56,18 +56,25 @@ export function Settings() {
 
   const symbol = settings.currencySymbol
 
-  function exportJSON() {
-    downloadFile(
-      backupFilename('json'),
-      toJSONBackup({ settings, categories, expenses }),
-      'application/json',
-    )
-    announce('Backup file saved.')
-  }
-
-  function exportCSV() {
-    downloadFile(backupFilename('csv'), toCSVBackup({ settings, categories, expenses }), 'text/csv')
-    announce('CSV file saved.')
+  /**
+   * The browser downloads the file; the Android shell opens a share sheet (see
+   * saveFile). Either way a failure has to say so — on native the old code
+   * simply did nothing visible.
+   */
+  async function exportBackup(kind: 'json' | 'csv') {
+    const bundle = { settings, categories, expenses }
+    const filename = backupFilename(kind)
+    try {
+      const outcome =
+        kind === 'json'
+          ? await saveFile(filename, toJSONBackup(bundle), 'application/json')
+          : await saveFile(filename, toCSVBackup(bundle), 'text/csv')
+      if (outcome === 'cancelled') return
+      announce(kind === 'json' ? 'Backup file saved.' : 'CSV file saved.')
+    } catch {
+      // Plugin errors read like stack traces; the file name is the useful part.
+      toast({ message: `${filename} could not be saved.`, durationMs: 6000 })
+    }
   }
 
   async function onImportFile(file: File) {
@@ -391,10 +398,18 @@ export function Settings() {
         </p>
 
         <div className="settings-actions">
-          <button type="button" className="btn btn-secondary settings-wide" onClick={exportCSV}>
+          <button
+            type="button"
+            className="btn btn-secondary settings-wide"
+            onClick={() => void exportBackup('csv')}
+          >
             Export CSV
           </button>
-          <button type="button" className="btn btn-secondary settings-wide" onClick={exportJSON}>
+          <button
+            type="button"
+            className="btn btn-secondary settings-wide"
+            onClick={() => void exportBackup('json')}
+          >
             Export JSON backup
           </button>
           <button type="button" className="btn btn-secondary settings-wide" onClick={() => fileRef.current?.click()}>

@@ -1,0 +1,12 @@
+.confirm-hint {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--label);
+  line-height: 1.4;
+}
+
+.sheet-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}

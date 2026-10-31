@@ -24,6 +24,12 @@ function tap(name: string | RegExp) {
   act(() => button.click())
 }
 
+/** One tap on a button inside a given container (a dialog over the sheet). */
+function tapIn(container: HTMLElement, name: string | RegExp) {
+  const button = within(container).getByRole('button', { name })
+  act(() => button.click())
+}
+
 /** One tap on a category chip. */
 function tapChip(name: RegExp) {
   const chip = screen.getByRole('radio', { name })
@@ -330,10 +336,16 @@ describe('the add-expense sheet', () => {
       expect((screen.getByLabelText('Note') as HTMLInputElement).value).toBe('Bread')
     })
 
-    /* Question 2: a mouse user needs a visible way to delete. */
-    it('carries a Delete with a working Undo', async () => {
+    /* Question 2: a mouse user needs a visible way to delete — and the visible
+       way still fences the delete behind a confirmation. */
+    it('fences Delete expense behind a confirmation, Undo intact', async () => {
       renderEdit()
       tap('Delete expense')
+      await settled()
+      expect(getState().expenses.some((e) => e.id === 'edit-me')).toBe(true)
+
+      const dialog = screen.getByRole('dialog', { name: 'Delete this expense?' })
+      tapIn(dialog, 'Delete')
       await settled()
       expect(getState().expenses.some((e) => e.id === 'edit-me')).toBe(false)
 
@@ -341,6 +353,33 @@ describe('the add-expense sheet', () => {
       await settled()
       const restored = getState().expenses.find((e) => e.id === 'edit-me')
       expect(restored).toEqual(existing)
+    })
+
+    /* Esc fires for every open sheet; it must act on the confirm on top, never
+       also discard the edit sitting underneath it. */
+    it('spends Esc on the confirmation first, keeping the edit sheet open', async () => {
+      let closed = 0
+      const { unmount } = render(
+        <Announcer>
+          <ToastHost>
+            <AddExpenseSheet open onClose={() => (closed += 1)} editing={existing} />
+          </ToastHost>
+        </Announcer>,
+      )
+
+      tap('Delete expense')
+      await settled()
+      const { fireEvent } = await import('@testing-library/dom')
+      act(() => {
+        fireEvent.keyDown(document, { key: 'Escape' })
+      })
+      await waitFor(() =>
+        expect(screen.queryByRole('dialog', { name: 'Delete this expense?' })).toBeNull(),
+      )
+
+      expect(closed).toBe(0)
+      expect(getState().expenses.some((e) => e.id === 'edit-me')).toBe(true)
+      unmount()
     })
 
     it('does not offer Delete when adding rather than editing', () => {

@@ -26,8 +26,12 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - name: Set up the Android SDK
-        uses: android-actions/setup-android@v3
+      # android-actions/setup-android@v3 no longer works: it runs `sdkmanager tools`,
+      # a package Google deleted from cmdline-tools 16 (now on the runner images).
+      # The SDK itself is preinstalled on ubuntu-latest; accepted licenses are all
+      # AGP needs to auto-fetch the platform + build-tools the project requests.
+      - name: Accept the Android SDK licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null
 
       - run: npm ci
 

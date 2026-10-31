@@ -4,8 +4,8 @@ import { fireEvent } from '@testing-library/dom'
 import App from './App'
 import { buildSampleExpenses } from './db/sampleData'
 import { deleteAllData, getState, importData, init, setSettings } from './store/store'
-import { todayISO } from './lib/dates'
-import { monthLabel, monthRange } from './lib/dates'
+import { todayISO, addDays, fromISODate, monthLabel, monthRange, shiftMonth } from './lib/dates'
+import type { MonthRange } from './lib/dates'
 import { formatMoney } from './lib/money'
 import type { Expense } from './types'
 
@@ -123,6 +123,93 @@ describe('the app shell', () => {
         fireEvent.change(search, { target: { value: 'zzzznothing' } })
       })
       expect(screen.getByText('Nothing matches these filters.')).toBeTruthy()
+    })
+
+    /* History as a combined view: tap several month chips, or take them all. */
+    describe('history month selection', () => {
+      /** The two spending months before the current one, oldest first, plus current. */
+      const threeMonths = (): MonthRange[] => {
+        const current = monthRange(todayISO(), 1)
+        return [shiftMonth(current, -2, 1), shiftMonth(current, -1, 1), current]
+      }
+
+      function chipFor(month: MonthRange): HTMLElement | undefined {
+        const strip = screen.getByRole('tablist', { name: 'Month' })
+        const label = fromISODate(month.start).toLocaleDateString(undefined, { month: 'short' })
+        return within(strip).getAllByRole('tab').find((tab) => tab.textContent === label)
+      }
+
+      function setUp() {
+        const [oldest, last] = threeMonths()
+        importData({
+          categories: getState().categories,
+          expenses: [
+            expense({ amount: 1100, date: addDays(oldest.start, 2), note: 'ELDER-olive' }),
+            expense({ amount: 2200, date: addDays(last.start, 2), note: 'MIDDLE-mint' }),
+            expense({ amount: 300, date: todayISO(), note: 'CURRENT-circle' }),
+          ],
+        })
+        return settled()
+      }
+
+      it('selects several months via chips and lists them under month headers', async () => {
+        const [oldest, , current] = threeMonths()
+        await setUp()
+        render(<App />)
+        goTo('History')
+
+        act(() => chipFor(oldest)!.click())
+
+        // Tapping a chip adds that month to the current selection.
+        expect(screen.getByText('ELDER-olive')).toBeTruthy()
+        expect(screen.getByText('CURRENT-circle')).toBeTruthy()
+        expect(screen.queryByText('MIDDLE-mint')).toBeNull()
+        expect(screen.getByRole('region', { name: monthLabel(oldest, { year: true }) })).toBeTruthy()
+        expect(screen.getByRole('region', { name: monthLabel(current, { year: true }) })).toBeTruthy()
+      })
+
+      it('selects every month at once from the All chip', async () => {
+        await setUp()
+        render(<App />)
+        goTo('History')
+
+        const strip = screen.getByRole('tablist', { name: 'Month' })
+        act(() => within(strip).getByRole('tab', { name: 'All months' }).click())
+
+        expect(screen.getByText('ELDER-olive')).toBeTruthy()
+        expect(screen.getByText('MIDDLE-mint')).toBeTruthy()
+        expect(screen.getByText('CURRENT-circle')).toBeTruthy()
+        for (const m of threeMonths()) {
+          expect(screen.getByRole('region', { name: monthLabel(m, { year: true }) })).toBeTruthy()
+        }
+      })
+
+      it('collapses back to one flat month when extra months are toggled off', async () => {
+        const [oldest, , current] = threeMonths()
+        await setUp()
+        render(<App />)
+        goTo('History')
+
+        act(() => chipFor(oldest)!.click())
+        act(() => chipFor(oldest)!.click())
+
+        expect(screen.getByText('CURRENT-circle')).toBeTruthy()
+        expect(screen.queryByText('ELDER-olive')).toBeNull()
+        expect(screen.queryByText('MIDDLE-mint')).toBeNull()
+        // One month means the single-month view: no month headers.
+        expect(screen.queryAllByRole('region', { name: monthLabel(current, { year: true }) })).toHaveLength(0)
+      })
+
+      it('never blanks out when the last remaining chip would be untoggled', async () => {
+        const [oldest] = threeMonths()
+        await setUp()
+        render(<App />)
+        goTo('History')
+
+        act(() => chipFor(oldest)!.click())
+        // Current month stays selected, so the list keeps its rows.
+        expect(screen.getByText('CURRENT-circle')).toBeTruthy()
+      })
     })
 
     /* Acceptance criterion 8: every chart has a table view. */

@@ -32,6 +32,30 @@ then ship it. Still confirm before anything destructive to git history itself (e
 force-push, rewriting a tag) — this instruction covers routine forward commits/tags, not
 history rewrites.
 
+## Parallel sessions
+
+Several OpenCode sessions work on this repo at the same time. Colliding sessions were
+the one thing that lost finished work here, so this section is a hard rule:
+
+1. **One task = one worktree + one branch.** At the start of a task create it with
+   `opencode worktree_create <task-slug>` (each gets its own directory and branch) and
+   move the session there; work only in that directory. Do not run two tasks-in-progress
+   against the same checkout.
+2. **Never touch another session's directory or branch**: no checkout, reset, stash,
+   rebase, or `git add` there — even to "clean things up". Another session's uncommitted
+   files are somebody's live work.
+3. **Commit early, commit everything.** If you find unrelated uncommitted work in a
+   directory you must touch anyway, save it to a `task/<name>` branch (`git checkout -b
+   task/<name> && git add -A && git commit`) before doing anything else — uncommitted
+   files are what actually dies in a collision.
+4. **Land one task at a time.** Merge a task branch into `main` only after the full
+   suite passes in *its* worktree, then rerun the full suite in main after the merge
+   (the baseline may have moved under the branch). Two tasks that edited the same file
+   will conflict — resolve serially, after re-reading the other branch's intent.
+5. `wip/`-prefixed, name-suffixed branches (`feat/…`, `task/…`) may sit around; a branch
+   that no longer has an owner session is fair game to review, finish, or retire after
+   asking the user.
+
 ## Commands
 
 ```sh

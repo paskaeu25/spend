@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Category } from '../types'
 import { Sheet } from '../ui/Sheet'
+import { ConfirmDeleteSheet } from '../ui/ConfirmDeleteSheet'
 import { minorToDecimalString, parseMoneyInput } from '../lib/money'
 import {
   reassignAndDeleteCategory,
@@ -30,6 +31,7 @@ export function CategorySheet({ open, category, onClose }: CategorySheetProps) {
   const [name, setName] = useState('')
   const [emoji, setEmoji] = useState('')
   const [capText, setCapText] = useState('')
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const nameRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -37,6 +39,7 @@ export function CategorySheet({ open, category, onClose }: CategorySheetProps) {
     setName(category.name)
     setEmoji(category.emoji)
     setCapText(category.monthlyCap != null ? minorToDecimalString(category.monthlyCap).replace(/\.00$/, '') : '')
+    setConfirmingDelete(false)
   }, [open, category])
 
   if (!category) return null
@@ -91,9 +94,15 @@ export function CategorySheet({ open, category, onClose }: CategorySheetProps) {
   }
 
   return (
-    <Sheet
-      open={open}
-      onClose={onClose}
+    <>
+      <Sheet
+        open={open}
+        onClose={() => {
+          // A confirmation sheet sits above this one; close events belong to it
+          // first. Esc, back-dismiss and the backdrop all arrive through here.
+          if (confirmingDelete) return
+          onClose()
+        }}
       label={`Edit ${category.name}`}
       title="Edit category"
       initialFocusRef={nameRef}
@@ -145,7 +154,11 @@ export function CategorySheet({ open, category, onClose }: CategorySheetProps) {
 
         {reassignTarget && (
           <>
-            <button type="button" className="btn btn-secondary settings-wide cat-delete" onClick={remove}>
+            <button
+              type="button"
+              className="btn btn-secondary settings-wide cat-delete"
+              onClick={() => setConfirmingDelete(true)}
+            >
               Delete category
             </button>
             <p className="field-hint">
@@ -164,6 +177,24 @@ export function CategorySheet({ open, category, onClose }: CategorySheetProps) {
           Save changes
         </button>
       </div>
-    </Sheet>
+
+      </Sheet>
+
+      <ConfirmDeleteSheet
+        open={confirmingDelete}
+        onClose={() => setConfirmingDelete(false)}
+        onConfirm={remove}
+        label="Delete this category?"
+        confirmLabel="Delete"
+        body={
+          <>
+            {category.name}.
+            {affectedCount > 0
+              ? ` ${affectedCount} ${affectedCount === 1 ? 'expense' : 'expenses'} will move to ${reassignTarget?.name}.`
+              : ' Nothing is filed under it.'}
+          </>
+        }
+      />
+    </>
   )
 }

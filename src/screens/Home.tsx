@@ -1,13 +1,15 @@
-import { useMemo } from 'react'
-import { dayIndexInMonth, monthLabel, monthRange, shiftMonth, todayISO } from '../lib/dates'
+import { useMemo, useState } from 'react'
+import { dayIndexInMonth, dayLabel, monthLabel, monthRange, shiftMonth, todayISO } from '../lib/dates'
 import { formatAmountBody, formatMoney } from '../lib/money'
 import { capProgress, categoryMap, expensesOn, totalThroughDay } from '../store/selectors'
 import { deleteExpenses, restoreExpenses, useStore } from '../store/store'
 import { ExpenseRow } from '../ui/ExpenseRow'
+import { ConfirmDeleteSheet } from '../ui/ConfirmDeleteSheet'
 import { Meter } from '../ui/Meter'
 import { useToast } from '../ui/Toast'
 import { InsightCard } from '../insights/InsightCard'
 import { useNav } from '../App'
+import type { Expense } from '../types'
 import './home.css'
 
 export function Home() {
@@ -32,10 +34,15 @@ export function Home() {
 
   const cats = useMemo(() => categoryMap(categories), [categories])
   const todaysExpenses = useMemo(() => expensesOn(expenses, today), [expenses, today])
+  /* The row swipe and its keyboard button only arm a delete; this is the record
+     waiting for its confirmation, and nothing is removed until it is answered. */
+  const [pendingDelete, setPendingDelete] = useState<Expense | null>(null)
 
-  function removeExpense(id: string) {
-    const removed = expenses.filter((e) => e.id === id)
-    deleteExpenses([id])
+  function confirmRemove() {
+    if (!pendingDelete) return
+    const removed = expenses.filter((e) => e.id === pendingDelete.id)
+    deleteExpenses([pendingDelete.id])
+    setPendingDelete(null)
     toast({
       message: 'Expense deleted.',
       actionLabel: 'Undo',
@@ -158,13 +165,31 @@ export function Home() {
                   category={cats.get(e.categoryId)}
                   symbol={symbol}
                   onEdit={nav.openEdit}
-                  onDelete={(x) => removeExpense(x.id)}
+                  onDelete={setPendingDelete}
                 />
               ))}
             </ul>
           )}
         </section>
       )}
+
+      <ConfirmDeleteSheet
+        open={pendingDelete !== null}
+        onClose={() => setPendingDelete(null)}
+        onConfirm={confirmRemove}
+        label="Delete this expense?"
+        confirmLabel="Delete"
+        body={
+          pendingDelete && (
+            <>
+              {(pendingDelete.note || cats.get(pendingDelete.categoryId)?.name || 'Uncategorised') +
+                '. '}
+              {formatMoney(pendingDelete.amount, { symbol, compact: true })} ·{' '}
+              {dayLabel(pendingDelete.date, today)}
+            </>
+          )
+        }
+      />
     </div>
   )
 }

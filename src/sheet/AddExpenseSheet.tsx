@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import type { Category, Expense } from '../types'
 import { Sheet } from '../ui/Sheet'
+import { ConfirmDeleteSheet } from '../ui/ConfirmDeleteSheet'
 import { AmountDisplay } from './AmountDisplay'
 import { CategoryChips } from './CategoryChips'
 import { DateRow } from './DateRow'
@@ -17,7 +18,7 @@ import {
   splitShare,
   type KeypadKey,
 } from '../lib/money'
-import { todayISO } from '../lib/dates'
+import { todayISO, dayLabel } from '../lib/dates'
 import { uuid } from '../lib/uuid'
 import { lightHaptic } from '../lib/haptics'
 import {
@@ -192,7 +193,8 @@ export function AddExpenseSheet({ open, onClose, editing }: AddExpenseSheetProps
 
   /**
    * The third route to deleting a row, alongside the swipe and the keyboard button
-   * on the row itself — and the only one a mouse user is likely to find.
+   * on the row itself — and the only one a mouse user is likely to find. The
+   * button only arms the delete; the confirmation sheet is what removes it.
    */
   const removeExpense = useCallback(() => {
     if (!editing) return
@@ -205,6 +207,9 @@ export function AddExpenseSheet({ open, onClose, editing }: AddExpenseSheetProps
     })
     onClose()
   }, [editing, announce, toast, onClose])
+
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const closeConfirm = useCallback(() => setConfirmingDelete(false), [])
 
   const undoSave = useCallback(() => {
     if (!saved) return
@@ -279,14 +284,20 @@ export function AddExpenseSheet({ open, onClose, editing }: AddExpenseSheetProps
   )
 
   return (
-    <Sheet
-      open={open}
-      onClose={onClose}
-      label={editing ? 'Edit expense' : 'Add expense'}
-      title={editing ? 'Edit expense' : 'Add expense'}
-      initialFocusRef={amountRef}
-      className="add-sheet"
-    >
+    <>
+      <Sheet
+        open={open}
+        onClose={() => {
+          // A confirmation sheet sits above this one; close events belong to it
+          // first. Esc, back-dismiss and the backdrop all arrive through here.
+          if (confirmingDelete) return
+          onClose()
+        }}
+        label={editing ? 'Edit expense' : 'Add expense'}
+        title={editing ? 'Edit expense' : 'Add expense'}
+        initialFocusRef={amountRef}
+        className="add-sheet"
+      >
       <div className="add-sheet-body" onKeyDown={handleTypedKey}>
         <AmountDisplay
           ref={amountRef}
@@ -316,7 +327,11 @@ export function AddExpenseSheet({ open, onClose, editing }: AddExpenseSheetProps
 
         <div className="add-sheet-actions">
           {editing && (
-            <button type="button" className="btn btn-secondary delete-expense" onClick={removeExpense}>
+            <button
+              type="button"
+              className="btn btn-secondary delete-expense"
+              onClick={() => setConfirmingDelete(true)}
+            >
               Delete expense
             </button>
           )}
@@ -335,6 +350,25 @@ export function AddExpenseSheet({ open, onClose, editing }: AddExpenseSheetProps
           </button>
         </div>
       </div>
-    </Sheet>
+      </Sheet>
+
+      {editing && (
+        <ConfirmDeleteSheet
+          open={confirmingDelete}
+          onClose={closeConfirm}
+          onConfirm={removeExpense}
+          label="Delete this expense?"
+          confirmLabel="Delete"
+          body={
+            <>
+              {(editing.note || categories.find((c) => c.id === editing.categoryId)?.name || 'Uncategorised') +
+                '. '}
+              {formatMoney(editing.amount, { symbol: settings.currencySymbol, compact: true })} ·{' '}
+              {dayLabel(editing.date, todayISO())}
+            </>
+          }
+        />
+      )}
+    </>
   )
 }

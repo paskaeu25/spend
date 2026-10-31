@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import { fireEvent } from '@testing-library/dom'
 import type { Category, Expense } from '../types'
 import { CategorySheet } from './CategorySheet'
@@ -33,6 +33,10 @@ function renderFor(category: Category) {
 }
 
 const tap = (name: string | RegExp) => act(() => screen.getByRole('button', { name }).click())
+
+/** One tap on a button inside a given container (a dialog over the sheet). */
+const tapIn = (container: HTMLElement, name: string | RegExp) =>
+  act(() => within(container).getByRole('button', { name }).click())
 
 describe('category management', () => {
   beforeAll(async () => {
@@ -86,12 +90,18 @@ describe('category management', () => {
     expect(getState().categories.find((c) => c.id === 'cat-fun')!.isArchived).toBe(false)
   })
 
-  /* Acceptance criterion 3: deleting a category is undoable, and never orphans a row. */
-  it('deletes a category, moving its expenses to the catch-all', async () => {
+  /* Acceptance criterion 3: deleting a category is undoable, and never orphans a row.
+     The delete itself is fenced: confirming on a second sheet is what removes it. */
+  it('deletes a category behind a confirmation, moving its expenses to the catch-all', async () => {
     renderFor(fun())
     expect(screen.getByText(/2 expenses move to Other/)).toBeTruthy()
 
     tap('Delete category')
+    await settled()
+    expect(getState().categories.some((c) => c.id === 'cat-fun')).toBe(true)
+
+    const dialog = screen.getByRole('dialog', { name: 'Delete this category?' })
+    tapIn(dialog, 'Delete')
     await settled()
 
     expect(getState().categories.some((c) => c.id === 'cat-fun')).toBe(false)
@@ -101,9 +111,28 @@ describe('category management', () => {
     expect(getState().expenses.filter((e) => e.categoryId === 'cat-other')).toHaveLength(2)
   })
 
+  it('keeps the category when the delete confirmation is dismissed', async () => {
+    renderFor(fun())
+
+    tap('Delete category')
+    await settled()
+    const dialog = screen.getByRole('dialog', { name: 'Delete this category?' })
+    tapIn(dialog, 'Keep it')
+    await settled()
+
+    expect(getState().categories.some((c) => c.id === 'cat-fun')).toBe(true)
+    expect(getState().expenses.filter((e) => e.categoryId === 'cat-fun')).toHaveLength(2)
+    // The sheet stays mounted through its 180ms exit animation before unmounting.
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Delete this category?' })).toBeNull(),
+    )
+  })
+
   it('restores both the category and its expenses on Undo', async () => {
     renderFor(fun())
     tap('Delete category')
+    await settled()
+    tapIn(screen.getByRole('dialog', { name: 'Delete this category?' }), 'Delete')
     await settled()
 
     tap('Undo')

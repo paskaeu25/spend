@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { act, render, screen, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import { fireEvent } from '@testing-library/dom'
 import App from './App'
 import { buildSampleExpenses } from './db/sampleData'
@@ -343,10 +343,12 @@ describe('the app shell', () => {
       expect(notes[1]).toContain('Small bread run')
     })
 
-    /* Acceptance criterion 3: deleting an expense can be undone. */
-    it('deletes a row and puts it back with Undo', async () => {
+    /* Acceptance criterion 3: deleting an expense can be undone.
+       Deletion is fenced: arming it never removes anything on its own — the
+       confirmation sheet is what finishes the job. */
+    it('presents a row delete for confirmation, then deletes and undoes', async () => {
       importData({
-        expenses: [expense({ amount: 1234, date: todayISO() })],
+        expenses: [expense({ amount: 1234, date: todayISO(), note: 'Bread' })],
         categories: getState().categories,
       })
       await settled()
@@ -355,11 +357,62 @@ describe('the app shell', () => {
       const before = getState().expenses.length
       act(() => screen.getByRole('button', { name: /^Delete Groceries/ }).click())
       await settled()
+
+      // Nothing has been removed yet, and the fence names what is about to vanish.
+      expect(getState().expenses).toHaveLength(before)
+      const dialog = screen.getByRole('dialog', { name: 'Delete this expense?' })
+      expect(dialog.textContent).toContain('Bread.')
+      expect(dialog.textContent).toContain('€12.34')
+      expect(dialog.textContent).toContain('Today')
+
+      act(() => within(dialog).getByRole('button', { name: 'Delete' }).click())
+      await settled()
       expect(getState().expenses).toHaveLength(before - 1)
 
       act(() => screen.getByRole('button', { name: 'Undo' }).click())
       await settled()
       expect(getState().expenses).toHaveLength(before)
+    })
+
+    it('keeps the row when the delete confirmation is dismissed', async () => {
+      importData({
+        expenses: [expense({ amount: 1234, date: todayISO(), note: 'Bread' })],
+        categories: getState().categories,
+      })
+      await settled()
+      render(<App />)
+
+      act(() => screen.getByRole('button', { name: /^Delete Groceries/ }).click())
+      await settled()
+      const dialog = screen.getByRole('dialog', { name: 'Delete this expense?' })
+      act(() => within(dialog).getByRole('button', { name: 'Keep it' }).click())
+      await settled()
+
+      expect(getState().expenses).toHaveLength(1)
+      // The sheet lingers through its 180ms exit animation before it unmounts.
+      await waitFor(() =>
+        expect(screen.queryByRole('dialog', { name: 'Delete this expense?' })).toBeNull(),
+      )
+    })
+
+    it('fences the identical swipe delete in History', async () => {
+      importData({
+        expenses: [expense({ amount: 1234, date: todayISO(), note: 'Bread' })],
+        categories: getState().categories,
+      })
+      await settled()
+      render(<App />)
+      goTo('History')
+
+      const before = getState().expenses.length
+      act(() => screen.getByRole('button', { name: /^Delete Groceries/ }).click())
+      await settled()
+      expect(getState().expenses).toHaveLength(before)
+
+      const dialog = screen.getByRole('dialog', { name: 'Delete this expense?' })
+      act(() => within(dialog).getByRole('button', { name: 'Delete' }).click())
+      await settled()
+      expect(getState().expenses).toHaveLength(before - 1)
     })
 
     it('opens the add sheet on a cold start when nothing is logged today', async () => {

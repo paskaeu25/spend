@@ -168,6 +168,12 @@
   height: 1px;
 }
 
+.empty-actions {
+  display: flex;
+  justify-content: center;
+  padding-bottom: 8px;
+}
+
 /* Several months on screen: headed blocks with a subtotal per month. */
 .month-block {
   margin-bottom: 20px;

@@ -125,12 +125,17 @@ describe('the app shell', () => {
       expect(screen.getByText('Nothing matches these filters.')).toBeTruthy()
     })
 
-    /* History as a combined view: tap several month chips, or take them all. */
+    /* History month strip: one tap jumps, All takes everything, stacking via trim. */
     describe('history month selection', () => {
       /** The two spending months before the current one, oldest first, plus current. */
       const threeMonths = (): MonthRange[] => {
         const current = monthRange(todayISO(), 1)
         return [shiftMonth(current, -2, 1), shiftMonth(current, -1, 1), current]
+      }
+
+      function allChip(): HTMLElement {
+        const strip = screen.getByRole('tablist', { name: 'Month' })
+        return within(strip).getByRole('tab', { name: 'All months' })
       }
 
       function chipFor(month: MonthRange): HTMLElement | undefined {
@@ -152,20 +157,18 @@ describe('the app shell', () => {
         return settled()
       }
 
-      it('selects several months via chips and lists them under month headers', async () => {
-        const [oldest, , current] = threeMonths()
+      it('jumps to another month with a single tap', async () => {
+        const [oldest] = threeMonths()
         await setUp()
         render(<App />)
         goTo('History')
 
+        // One month selected: a tap replaces, no un-tapping needed.
         act(() => chipFor(oldest)!.click())
 
-        // Tapping a chip adds that month to the current selection.
         expect(screen.getByText('ELDER-olive')).toBeTruthy()
-        expect(screen.getByText('CURRENT-circle')).toBeTruthy()
+        expect(screen.queryByText('CURRENT-circle')).toBeNull()
         expect(screen.queryByText('MIDDLE-mint')).toBeNull()
-        expect(screen.getByRole('region', { name: monthLabel(oldest, { year: true }) })).toBeTruthy()
-        expect(screen.getByRole('region', { name: monthLabel(current, { year: true }) })).toBeTruthy()
       })
 
       it('selects every month at once from the All chip', async () => {
@@ -173,8 +176,7 @@ describe('the app shell', () => {
         render(<App />)
         goTo('History')
 
-        const strip = screen.getByRole('tablist', { name: 'Month' })
-        act(() => within(strip).getByRole('tab', { name: 'All months' }).click())
+        act(() => allChip().click())
 
         expect(screen.getByText('ELDER-olive')).toBeTruthy()
         expect(screen.getByText('MIDDLE-mint')).toBeTruthy()
@@ -184,32 +186,70 @@ describe('the app shell', () => {
         }
       })
 
-      it('collapses back to one flat month when extra months are toggled off', async () => {
-        const [oldest, , current] = threeMonths()
+      it('toggles All back off into an empty selection', async () => {
         await setUp()
         render(<App />)
         goTo('History')
 
-        act(() => chipFor(oldest)!.click())
-        act(() => chipFor(oldest)!.click())
+        act(() => allChip().click())
+        act(() => allChip().click())
 
-        expect(screen.getByText('CURRENT-circle')).toBeTruthy()
+        // Nothing left: a deliberate state, not a blank screen.
+        expect(screen.getByText('No months selected.')).toBeTruthy()
         expect(screen.queryByText('ELDER-olive')).toBeNull()
         expect(screen.queryByText('MIDDLE-mint')).toBeNull()
-        // One month means the single-month view: no month headers.
-        expect(screen.queryAllByRole('region', { name: monthLabel(current, { year: true }) })).toHaveLength(0)
+        expect(screen.queryByText('CURRENT-circle')).toBeNull()
+        // The combined total line says nothing while nothing is selected.
+        // The combined total line says nothing while nothing is selected.
+        expect(screen.queryByText(/^\d+ months$/)).toBeNull()
       })
 
-      it('never blanks out when the last remaining chip would be untoggled', async () => {
-        const [oldest] = threeMonths()
+      it('recovers with the Select all button on the empty state', async () => {
         await setUp()
         render(<App />)
         goTo('History')
 
-        act(() => chipFor(oldest)!.click())
-        // Current month stays selected, so the list keeps its rows.
+        act(() => allChip().click())
+        act(() => allChip().click())
+        act(() => screen.getByRole('button', { name: 'Select all' }).click())
+
+        expect(screen.getByText('ELDER-olive')).toBeTruthy()
+        expect(screen.getByText('MIDDLE-mint')).toBeTruthy()
         expect(screen.getByText('CURRENT-circle')).toBeTruthy()
       })
+
+      it('when stacked, chips toggle on and off without hijacking', async () => {
+        const [oldest, last] = threeMonths()
+        await setUp()
+        render(<App />)
+        goTo('History')
+
+        // Build a stack from All, then trim it.
+        act(() => allChip().click())
+        act(() => chipFor(oldest)!.click()) // two left → toggle removes
+        expect(screen.queryByText('ELDER-olive')).toBeNull()
+        expect(screen.getByText('MIDDLE-mint')).toBeTruthy()
+        expect(screen.getByText('CURRENT-circle')).toBeTruthy()
+
+        // Still two selected, so a chip tap adds back rather than jumping.
+        act(() => chipFor(oldest)!.click())
+        expect(screen.getByText('ELDER-olive')).toBeTruthy()
+        assertMonthHeaders([oldest, last, threeMonths()[2]])
+
+        // Down to one, and jumping works again: get rid of the rest.
+        act(() => chipFor(last)!.click()) // toggle removes last
+        act(() => chipFor(threeMonths()[2])!.click()) // toggle removes current
+        act(() => chipFor(last)!.click()) // single now → tap replaces
+        expect(screen.getByText('MIDDLE-mint')).toBeTruthy()
+        expect(screen.queryByText('ELDER-olive')).toBeNull()
+        expect(screen.queryByText('CURRENT-circle')).toBeNull()
+      })
+
+      function assertMonthHeaders(monthsList: MonthRange[]) {
+        for (const m of monthsList) {
+          expect(screen.getByRole('region', { name: monthLabel(m, { year: true }) })).toBeTruthy()
+        }
+      }
     })
 
     /* Acceptance criterion 8: every chart has a table view. */

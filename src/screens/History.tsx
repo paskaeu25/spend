@@ -84,16 +84,21 @@ export function History({ preset, onPresetApplied }: HistoryProps) {
   /** An "All" chip only makes sense once there is more than one month around. */
   const allMonthsActive = months.length > 1 && activeMonths.length === months.length
 
-  /** Adds a month to the view, or drops one — but never down to none. */
+  /**
+   * One tap does what you meant:
+   *  - with one (or no) month selected, a tap jumps to just that month;
+   *  - with a stack of two or more, a tap toggles that month in or out.
+   */
   function toggleMonth(start: string) {
     setSelectedMonths((prev) => {
-      if (!prev.includes(start)) return [...prev, start]
-      return prev.length > 1 ? prev.filter((s) => s !== start) : prev
+      if (prev.length <= 1) return [start]
+      return prev.includes(start) ? prev.filter((s) => s !== start) : [...prev, start]
     })
   }
 
+  /** All is a switch: on takes every month, off empties the selection entirely. */
   function selectAllMonths() {
-    setSelectedMonths(months.map((m) => m.start))
+    setSelectedMonths(allMonthsActive ? [] : months.map((m) => m.start))
   }
 
   const activeMonth = activeMonths[0] ?? monthRange(today, settings.monthStartDay)
@@ -347,31 +352,45 @@ export function History({ preset, onPresetApplied }: HistoryProps) {
         </label>
       </div>
 
-      <div className="history-summary">
-        <span>{multiMonths ? `${activeMonths.length} months` : monthLabel(activeMonth, { year: true })}</span>
-        <span className="tabular">{formatMoney(monthTotal, { symbol, compact: true })}</span>
-      </div>
-
-      {filtered.length === 0 ? (
-        <p className="empty">
-          {expenses.length === 0
-            ? 'Your logged expenses will show up here.'
-            : filterCount > 0 || search
-              ? 'Nothing matches these filters.'
-              : 'Nothing logged in this month.'}
-        </p>
-      ) : multiMonths ? (
-        monthBlocks.map(({ month, groups: dayGroups, total }) => (
-          <section key={month.start} className="month-block" aria-label={monthLabel(month, { year: true })}>
-            <div className="month-head">
-              <h2 className="month-title">{monthLabel(month, { year: true })}</h2>
-              <span className="month-total tabular">{formatMoney(total, { symbol, compact: true })}</span>
-            </div>
-            {renderDayGroups(dayGroups)}
-          </section>
-        ))
+      {activeMonths.length === 0 ? (
+        <p className="empty">No months selected.</p>
       ) : (
-        renderDayGroups(monthBlocks[0]?.groups ?? [])
+        <>
+          <div className="history-summary">
+            <span>{multiMonths ? `${activeMonths.length} months` : monthLabel(activeMonth, { year: true })}</span>
+            <span className="tabular">{formatMoney(monthTotal, { symbol, compact: true })}</span>
+          </div>
+
+          {filtered.length === 0 ? (
+            <p className="empty">
+              {expenses.length === 0
+                ? 'Your logged expenses will show up here.'
+                : filterCount > 0 || search
+                  ? 'Nothing matches these filters.'
+                  : 'Nothing logged in this month.'}
+            </p>
+          ) : multiMonths ? (
+            monthBlocks.map(({ month, groups: dayGroups, total }) => (
+              <section key={month.start} className="month-block" aria-label={monthLabel(month, { year: true })}>
+                <div className="month-head">
+                  <h2 className="month-title">{monthLabel(month, { year: true })}</h2>
+                  <span className="month-total tabular">{formatMoney(total, { symbol, compact: true })}</span>
+                </div>
+                {renderDayGroups(dayGroups)}
+              </section>
+            ))
+          ) : (
+            renderDayGroups(monthBlocks[0]?.groups ?? [])
+          )}
+        </>
+      )}
+
+      {activeMonths.length === 0 && (
+        <div className="empty-actions">
+          <button type="button" className="btn-text" onClick={selectAllMonths}>
+            Select all
+          </button>
+        </div>
       )}
 
       {hasMore && <div ref={sentinelRef} className="history-sentinel" aria-hidden="true" />}

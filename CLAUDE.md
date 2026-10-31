@@ -10,27 +10,27 @@ localStorage. Built to the spec in `expense-tracker-requirements.txt` — commen
 code point back to specific sections where the spec was ambiguous or self-contradictory;
 read those comments before "fixing" something that looks inconsistent.
 
-## Workflow: ship every change, no dev environment
+## Workflow: ask before shipping
 
 There is no separate dev/staging step for this project — every change goes straight to
 production and to a new Android build. Concretely, after making a code change (once
 `npm run check` passes):
 
-1. Commit and push to `main`. Vercel is connected directly to the repo, so this alone
-   deploys the web app — nothing else to trigger.
-2. Cut a new Android release: bump the **patch** version from the latest tag (e.g.
+1. Commit locally on the task branch; merge to `main` only after the full suite is green
+   in the task worktree **and** green again in `main` (see Parallel sessions). Do not push
+   yet.
+2. **Ask the user before pushing or tagging, every time.** Pushing `main` deploys the web
+   app (Vercel is connected directly) and a new tag triggers the Android APK build — both
+   go live, so both need the user's go-ahead in that session.
+3. Only after the user agrees: push, bump the **patch** version from the latest tag (e.g.
    `v1.0.3` → `v1.0.4` — check with `git tag --list --sort=-v:refname | head -1`), then
-   `git tag vX.Y.Z && git push --tags`. That triggers `.github/workflows/android.yml`,
-   which builds, signs, and attaches the APK to a GitHub Release. Only bump minor/major if
-   the user asks for it explicitly — default to patch.
-3. Do this for every change, not just at the end of a session — don't batch multiple
-   changes into one deploy/tag unless the user says otherwise.
+   `git tag vX.Y.Z && git push --tags`. Only bump minor/major if the user asks for it
+   explicitly — default to patch.
 
 Do not suggest running `npm run dev` / `npm run preview` as the way to check a change —
-verify with `npm run check` (and `npm run build` if the change could affect bundling) and
-then ship it. Still confirm before anything destructive to git history itself (e.g.
-force-push, rewriting a tag) — this instruction covers routine forward commits/tags, not
-history rewrites.
+verify with `npm run check` (and `npm run build` if the change could affect bundling)
+instead. Still confirm before anything destructive to git history itself (e.g.
+force-push, rewriting a tag).
 
 ## Parallel sessions
 

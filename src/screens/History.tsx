@@ -11,7 +11,7 @@ import {
   shortMonthLabel,
   todayISO,
 } from '../lib/dates'
-import { formatMoney, parseMoneyInput } from '../lib/money'
+import { formatMoney } from '../lib/money'
 import { categoryMap, groupByDay, monthsWithData } from '../store/selectors'
 import { deleteExpenses, restoreExpenses, useStore } from '../store/store'
 import { ExpenseRow } from '../ui/ExpenseRow'
@@ -39,10 +39,8 @@ export function History({ preset, onPresetApplied }: HistoryProps) {
     monthRange(today, settings.monthStartDay).start,
   ])
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
-  const [minText, setMinText] = useState('')
-  const [maxText, setMaxText] = useState('')
   const [search, setSearch] = useState('')
-  const [openPanel, setOpenPanel] = useState<'categories' | 'amount' | null>(null)
+  const [openPanel, setOpenPanel] = useState<'categories' | null>(null)
   const [limit, setLimit] = useState(PAGE)
 
   const stripRef = useRef<HTMLDivElement>(null)
@@ -107,29 +105,25 @@ export function History({ preset, onPresetApplied }: HistoryProps) {
   useEffect(
     () => setLimit(PAGE),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- selection changes, not its identity
-    [selectedMonths.join(), selectedCategories, minText, maxText, search],
+    [selectedMonths.join(), selectedCategories, search],
   )
 
   const cats = useMemo(() => categoryMap(categories), [categories])
 
   const filtered = useMemo(() => {
-    const min = parseMoneyInput(minText)
-    const max = parseMoneyInput(maxText)
     const needle = search.trim().toLowerCase()
     const catFilter = new Set(selectedCategories)
 
     return expenses.filter((e) => {
       if (!activeMonths.some((m) => isInRange(e.date, m))) return false
       if (catFilter.size > 0 && !catFilter.has(e.categoryId)) return false
-      if (min !== null && e.amount < min) return false
-      if (max !== null && e.amount > max) return false
       if (needle) {
         const category = cats.get(e.categoryId)?.name.toLowerCase() ?? ''
         if (!e.note.toLowerCase().includes(needle) && !category.includes(needle)) return false
       }
       return true
     })
-  }, [expenses, activeMonths, selectedCategories, minText, maxText, search, cats])
+  }, [expenses, activeMonths, selectedCategories, search, cats])
 
   const monthTotal = useMemo(() => filtered.reduce((n, e) => n + e.amount, 0), [filtered])
   const visible = useMemo(() => filtered.slice(0, limit), [filtered, limit])
@@ -211,8 +205,7 @@ export function History({ preset, onPresetApplied }: HistoryProps) {
     )
   }
 
-  const filterCount =
-    selectedCategories.length + (parseMoneyInput(minText) !== null || parseMoneyInput(maxText) !== null ? 1 : 0)
+  const filterCount = selectedCategories.length
 
   return (
     <div>
@@ -282,53 +275,6 @@ export function History({ preset, onPresetApplied }: HistoryProps) {
               })}
               {selectedCategories.length > 0 && (
                 <button type="button" className="btn-text" onClick={() => setSelectedCategories([])}>
-                  Clear
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="filter-wrap">
-          <button
-            type="button"
-            className={`filter-btn${parseMoneyInput(minText) !== null || parseMoneyInput(maxText) !== null ? ' is-active' : ''}`}
-            aria-expanded={openPanel === 'amount'}
-            onClick={() => setOpenPanel((p) => (p === 'amount' ? null : 'amount'))}
-          >
-            Amount
-          </button>
-          {openPanel === 'amount' && (
-            <div className="filter-panel filter-panel-amount">
-              <label className="filter-amount">
-                <span>From</span>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={minText}
-                  onChange={(e) => setMinText(e.target.value)}
-                  placeholder="0"
-                />
-              </label>
-              <label className="filter-amount">
-                <span>To</span>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={maxText}
-                  onChange={(e) => setMaxText(e.target.value)}
-                  placeholder="Any"
-                />
-              </label>
-              {(minText || maxText) && (
-                <button
-                  type="button"
-                  className="btn-text"
-                  onClick={() => {
-                    setMinText('')
-                    setMaxText('')
-                  }}
-                >
                   Clear
                 </button>
               )}

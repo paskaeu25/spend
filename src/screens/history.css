@@ -88,29 +88,6 @@
   accent-color: var(--accent-ink);
 }
 
-.filter-panel-amount {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.filter-amount {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  font-size: 0.8125rem;
-}
-
-.filter-amount input {
-  width: 96px;
-  min-height: var(--tap);
-  padding: 0 10px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--hairline);
-  background: var(--sunken);
-}
-
 .filter-search {
   flex: 1;
   min-width: 0;

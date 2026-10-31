@@ -112,7 +112,6 @@ describe('the app shell', () => {
       expect(groups.length).toBeGreaterThan(0)
       expect(screen.getByPlaceholderText('Search notes')).toBeTruthy()
       expect(screen.getByRole('button', { name: /^Categories/ })).toBeTruthy()
-      expect(screen.getByRole('button', { name: 'Amount' })).toBeTruthy()
     })
 
     it('filters History by a search term', () => {

@@ -167,3 +167,22 @@
 .history-sentinel {
   height: 1px;
 }
+
+/* Several months on screen: headed blocks with a subtotal per month. */
+.month-block {
+  margin-bottom: 20px;
+}
+
+.month-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 2px 10px;
+}
+
+.month-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ink);
+}

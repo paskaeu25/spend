@@ -9,6 +9,67 @@
   margin-bottom: 12px;
 }
 
+/* The reminder list after "Where it went": what a tapped category was spent on. */
+.drill-list {
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.drill-list-head {
+  margin-bottom: 6px;
+}
+
+.drill-list ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.drill-list-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid var(--hairline);
+  font-size: 0.875rem;
+}
+
+.drill-list-row:first-child {
+  border-top: 0;
+}
+
+.drill-list-date {
+  flex: none;
+  min-width: 74px;
+  font-size: 0.75rem;
+  color: var(--ink-2);
+}
+
+.drill-list-note {
+  flex: 1;
+  min-width: 0;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.drill-list-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.drill-list-mark {
+  flex: none;
+  color: var(--label);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.drill-list-amount {
+  flex: none;
+  font-weight: 600;
+}
+
 /* The way back to six bars once "Other" has been unpooled. */
 .chart-collapse {
   width: 100%;

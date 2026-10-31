@@ -5,6 +5,8 @@ import App from './App'
 import { buildSampleExpenses } from './db/sampleData'
 import { deleteAllData, getState, importData, init, setSettings } from './store/store'
 import { todayISO } from './lib/dates'
+import { monthLabel, monthRange } from './lib/dates'
+import { formatMoney } from './lib/money'
 import type { Expense } from './types'
 
 const settled = () => new Promise((resolve) => setTimeout(resolve, 20))
@@ -189,6 +191,69 @@ describe('the app shell', () => {
       act(() => within(drill).getByRole('button', { name: 'Table' }).click())
       // Six months, one row each.
       expect(within(drill).getAllByRole('row')).toHaveLength(7)
+    })
+
+    /* A tapped bar is a reminder, not just a total: list that month's purchases. */
+    it('lists the month’s expenses for a category right after Where it went', () => {
+      const categories = getState().categories
+      const [firstCat, secondCat] = categories
+      importData({
+        categories,
+        expenses: [
+          expense({ amount: 1234, date: todayISO(), note: 'Oat milk and bread', categoryId: firstCat.id }),
+          expense({ amount: 800, date: todayISO(), note: 'Coffee beans', categoryId: secondCat.id }),
+        ],
+      })
+
+      render(<App />)
+      goTo('Insights')
+      const breakdown = screen.getByRole('region', { name: 'Where it went' })
+      const firstBar = within(breakdown).getAllByRole('button')[2] // after Chart/Table
+      act(() => firstBar.click())
+
+      const list = screen.getByRole('region', {
+        name: `${firstCat.emoji} ${firstCat.name} — ${monthLabel(monthRange(todayISO(), 1))}`,
+      })
+      expect(within(list).getByText('Oat milk and bread')).toBeTruthy()
+      expect(within(list).getByText(formatMoney(1234, { symbol: '€' }))).toBeTruthy()
+      expect(within(list).getByText('Today')).toBeTruthy()
+      expect(
+        within(list).getByText(
+          new RegExp(`^1 expense\\s*·\\s*${formatMoney(1234, { symbol: '€' })}$`.replace('.', '\\.')),
+        ),
+      ).toBeTruthy()
+      // Another category's purchases stay in their own reminder.
+      expect(within(list).queryByText('Coffee beans')).toBeNull()
+    })
+
+    /* A reminder is a "where did the money go" read — biggest purchase on top. */
+    it('sorts the category expense list by amount, highest first', () => {
+      const categories = getState().categories
+      const [firstCat] = categories
+      importData({
+        categories,
+        expenses: [
+          expense({ amount: 1000, date: todayISO(), note: 'Small bread run', categoryId: firstCat.id }),
+          expense({ amount: 5000, date: todayISO(), note: 'Weekly shop', categoryId: firstCat.id }),
+          expense({ amount: 400, date: todayISO(), note: 'Bolt ride', categoryId: categories[1].id }),
+        ],
+      })
+
+      render(<App />)
+      goTo('Insights')
+      const breakdown = screen.getByRole('region', { name: 'Where it went' })
+      const firstBar = within(breakdown).getAllByRole('button')[2] // after Chart/Table
+      act(() => firstBar.click())
+
+      const list = screen.getByRole('region', {
+        name: `${firstCat.emoji} ${firstCat.name} — ${monthLabel(monthRange(todayISO(), 1))}`,
+      })
+      const notes = within(list)
+        .getAllByRole('listitem')
+        .map((row) => row.textContent)
+      expect(notes).toHaveLength(2)
+      expect(notes[0]).toContain('Weekly shop')
+      expect(notes[1]).toContain('Small bread run')
     })
 
     /* Acceptance criterion 3: deleting an expense can be undone. */

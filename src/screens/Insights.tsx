@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import {
   type MonthRange,
+  dayLabel,
   dayIndexInMonth,
   monthLabel,
   monthRange,
@@ -13,6 +14,7 @@ import {
   categoryMap,
   categoryMonthlyTotals,
   dailyCumulative,
+  inMonth,
   monthsWithData,
   totalsByCategory,
 } from '../store/selectors'
@@ -123,6 +125,23 @@ export function Insights() {
     : lines.current.length
 
   const drillCategory = drillId ? cats.get(drillId) : undefined
+  const drillListId = useId()
+
+  /*
+   * The bar answers "how much"; this list answers "on what". Highest first so
+   * the reminder reads as "where the money went"; equal amounts fall back to
+   * newest.
+   */
+  const drillExpenses = useMemo(() => {
+    if (!drillCategory) return []
+    return inMonth(expenses, month)
+      .filter((e) => e.categoryId === drillCategory.id)
+      .sort(
+        (a, b) => b.amount - a.amount || b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt),
+      )
+  }, [drillCategory, expenses, month])
+  const drillListTotal = useMemo(() => drillExpenses.reduce((n, e) => n + e.amount, 0), [drillExpenses])
+
   const drillData = useMemo(() => {
     if (!drillCategory) return []
     return categoryMonthlyTotals(expenses, drillCategory.id, month, 6, settings.monthStartDay).map((m) => ({
@@ -202,6 +221,58 @@ export function Insights() {
               </>
             )}
           </ChartFrame>
+
+          {drillCategory && (
+            <section className="card drill-list" aria-labelledby={drillListId}>
+              <div className="drill-list-head">
+                <h2 id={drillListId} className="chart-title">
+                  {drillCategory.emoji} {drillCategory.name} — {monthLabel(month)}
+                </h2>
+                <p className="chart-caption">
+                  {drillExpenses.length} {drillExpenses.length === 1 ? 'expense' : 'expenses'} ·{' '}
+                  {formatMoney(drillListTotal, { symbol })}
+                </p>
+              </div>
+              {drillExpenses.length === 0 ? (
+                <p className="empty">Nothing logged in this month.</p>
+              ) : (
+                <ul>
+                  {drillExpenses.map((e) => {
+                    const split =
+                      e.sharePct != null && e.fullAmount != null
+                        ? {
+                            mark: e.sharePct === 50 ? '½' : `${e.sharePct}%`,
+                            title: `Your ${e.sharePct}% of ${formatMoney(e.fullAmount, { symbol, compact: true })}`,
+                          }
+                        : null
+                    return (
+                      <li key={e.id} className="drill-list-row">
+                        <span className="drill-list-date">{dayLabel(e.date, today)}</span>
+                        <span className="drill-list-note">
+                          <span className="drill-list-text">{e.note || '—'}</span>
+                          {e.isRecurringHint && (
+                            <span className="drill-list-mark" title="Recurring">
+                              <span aria-hidden="true">↻</span>
+                              <span className="sr-only">Recurring</span>
+                            </span>
+                          )}
+                          {split && (
+                            <span className="drill-list-mark" title={split.title}>
+                              <span aria-hidden="true">{split.mark}</span>
+                              <span className="sr-only">{split.title}</span>
+                            </span>
+                          )}
+                        </span>
+                        <span className="drill-list-amount tabular">
+                          {formatMoney(e.amount, { symbol, compact: true })}
+                        </span>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </section>
+          )}
 
           <ChartFrame
             title="Spending over time"

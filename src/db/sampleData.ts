@@ -89,7 +89,6 @@ export function buildSampleExpenses(currency: string, monthStartDay: number): Ex
           note: plan.notes[Math.floor(random() * plan.notes.length)] ?? '',
           date,
           createdAt: new Date(`${date}T12:00:00`).toISOString(),
-          isRecurringHint: false,
         })
       }
     }
@@ -105,7 +104,6 @@ export function buildSampleExpenses(currency: string, monthStartDay: number): Ex
         note: 'Streaming',
         date: subscriptionDay,
         createdAt: new Date(`${subscriptionDay}T12:00:00`).toISOString(),
-        isRecurringHint: false,
       })
     }
   }

@@ -14,12 +14,10 @@ export interface Expense {
   date: string
   /** ISO datetime. */
   createdAt: string
-  /** Set by the app when it detects a repeat pattern. */
-  isRecurringHint: boolean
   /**
    * Split rows only — something paid from a joint account. `fullAmount` is what
    * was actually paid and `sharePct` the part of it that is the user's; `amount`
-   * stays that share, so every total, cap, chart and export sees the same
+   * stays that share, so every total, chart and export sees the same
    * "what I spent" figure it always has. Absent on an ordinary expense.
    */
   fullAmount?: number
@@ -33,8 +31,6 @@ export interface Category {
   /** A single emoji as the icon — no icon library needed. */
   emoji: string
   colorSlot: ColorSlot
-  /** Minor units; null means untracked. */
-  monthlyCap: number | null
   isArchived: boolean
   /**
    * Manual order from Settings. Chip order in the add sheet is recency-frequency

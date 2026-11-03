@@ -18,7 +18,6 @@ function expense(id: string, categoryId: string): Expense {
     note: '',
     date: '2026-08-04',
     createdAt: '2026-08-04T10:00:00.000Z',
-    isRecurringHint: false,
   }
 }
 
@@ -55,29 +54,18 @@ describe('category management', () => {
 
   const fun = () => getState().categories.find((c) => c.name === 'Fun')!
 
-  it('renames a category and sets a cap', async () => {
+  it('renames a category', async () => {
     renderFor(fun())
     act(() => {
       fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Going out' } })
-      fireEvent.change(screen.getByLabelText(/Monthly cap/), { target: { value: '120' } })
     })
     tap('Save changes')
     await settled()
 
     const updated = getState().categories.find((c) => c.id === 'cat-fun')!
     expect(updated.name).toBe('Going out')
-    expect(updated.monthlyCap).toBe(12_000)
   })
 
-  it('clears a cap when the field is emptied', async () => {
-    renderFor({ ...fun(), monthlyCap: 5_000 })
-    act(() => {
-      fireEvent.change(screen.getByLabelText(/Monthly cap/), { target: { value: '' } })
-    })
-    tap('Save changes')
-    await settled()
-    expect(getState().categories.find((c) => c.id === 'cat-fun')!.monthlyCap).toBeNull()
-  })
 
   it('archives with an Undo that puts it back', async () => {
     renderFor(fun())

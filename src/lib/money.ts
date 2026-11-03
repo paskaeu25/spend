@@ -162,14 +162,6 @@ export function clampSharePct(value: unknown, fallback = 50): number {
   return Math.min(n, 99)
 }
 
-/** Rounds up to a tidy figure for suggested caps: nearest 10 units, min 5. */
-export function roundCapSuggestion(minor: number): number {
-  if (minor <= 0) return 500
-  const units = minor / 100
-  const step = units >= 200 ? 10 : units >= 50 ? 5 : 1
-  return Math.max(Math.round(units / step) * step, 1) * 100
-}
-
 export function median(values: number[]): number {
   if (values.length === 0) return 0
   const s = [...values].sort((a, b) => a - b)

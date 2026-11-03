@@ -38,12 +38,6 @@ export function ExpenseRow({ expense, category, symbol, onEdit, onDelete }: Expe
           <span className="expense-text">
             <span className="expense-category">
               {name}
-              {expense.isRecurringHint && (
-                <span className="expense-recurring" title="Recurring">
-                  <span aria-hidden="true">↻</span>
-                  <span className="sr-only">Recurring</span>
-                </span>
-              )}
               {split && (
                 <span className="expense-split" title={split.title}>
                   <span aria-hidden="true">{split.mark}</span>

@@ -41,17 +41,6 @@
   color: var(--ink-2);
 }
 
-.home-caps {
-  padding: 4px 14px 14px;
-  margin-top: 8px;
-}
-
-.home-caps-note {
-  margin-top: 10px;
-  font-size: 0.8125rem;
-  color: var(--ink-2);
-}
-
 .section-heading {
   font-size: 0.75rem;
   font-weight: 600;

@@ -24,7 +24,6 @@ function expense(partial: Partial<Expense> & { amount: number; date: string }): 
     categoryId: 'cat-groceries',
     note: '',
     createdAt: `${partial.date}T10:00:00.000Z`,
-    isRecurringHint: false,
     ...partial,
   }
 }
@@ -496,33 +495,6 @@ describe('the app shell', () => {
       // lets tokens.css hold one definition per palette. The stub reports light.
       act(() => screen.getByRole('button', { name: 'System' }).click())
       expect(document.documentElement.getAttribute('data-theme')).toBe('light')
-    })
-  })
-
-  describe('caps', () => {
-    it('shows a neutral meter with the remaining amount, and no meter without caps', async () => {
-      const categories = getState().categories.map((c) =>
-        c.id === 'cat-groceries' ? { ...c, monthlyCap: 20_000 } : c,
-      )
-      importData({ expenses: [expense({ amount: 5_000, date: todayISO() })], categories })
-      await settled()
-
-      render(<App />)
-      const meter = screen.getByRole('progressbar', { name: /monthly caps/ })
-      expect(meter.getAttribute('aria-valuenow')).toBe('25')
-      expect(screen.getByText('€150 left')).toBeTruthy()
-    })
-
-    it('states an over-cap figure in words, framed as reallocation', async () => {
-      const categories = getState().categories.map((c) =>
-        c.id === 'cat-groceries' ? { ...c, monthlyCap: 2_000 } : c,
-      )
-      importData({ expenses: [expense({ amount: 5_000, date: todayISO() })], categories })
-      await settled()
-
-      render(<App />)
-      expect(screen.getByText('€30 over your caps')).toBeTruthy()
-      expect(screen.getByText(/trim there or/)).toBeTruthy()
     })
   })
 })

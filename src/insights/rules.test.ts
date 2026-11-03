@@ -2,17 +2,17 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import type { Category, Expense, Settings } from '../types'
 import { monthRange } from '../lib/dates'
 import { DEFAULT_SETTINGS } from '../store/settings'
-import { capOpportunity, drift, quietWin, recurring, spike, type InsightContext } from './rules'
+import { drift, quietWin, spike, type InsightContext } from './rules'
 import { dismissInsight, isDismissed, pickInsight } from './engine'
 
 const TODAY = '2026-08-15'
 const settings: Settings = { ...DEFAULT_SETTINGS, currencySymbol: '€', monthStartDay: 1 }
 
 const CATEGORIES: Category[] = [
-  { id: 'cat-groceries', name: 'Groceries', emoji: '🛒', colorSlot: 1, monthlyCap: null, isArchived: false, sortWeight: 0 },
-  { id: 'cat-eating-out', name: 'Eating out', emoji: '🍽️', colorSlot: 2, monthlyCap: null, isArchived: false, sortWeight: 1 },
-  { id: 'cat-fun', name: 'Fun', emoji: '🎬', colorSlot: 5, monthlyCap: null, isArchived: false, sortWeight: 2 },
-  { id: 'cat-other', name: 'Other', emoji: '📦', colorSlot: 8, monthlyCap: null, isArchived: false, sortWeight: 3 },
+  { id: 'cat-groceries', name: 'Groceries', emoji: '🛒', colorSlot: 1,  isArchived: false, sortWeight: 0 },
+  { id: 'cat-eating-out', name: 'Eating out', emoji: '🍽️', colorSlot: 2,  isArchived: false, sortWeight: 1 },
+  { id: 'cat-fun', name: 'Fun', emoji: '🎬', colorSlot: 5,  isArchived: false, sortWeight: 2 },
+  { id: 'cat-other', name: 'Other', emoji: '📦', colorSlot: 8,  isArchived: false, sortWeight: 3 },
 ]
 
 let seq = 0
@@ -26,7 +26,6 @@ function e(date: string, amount: number, categoryId: string, extra: Partial<Expe
     note: '',
     date,
     createdAt: `${date}T12:00:00.000Z`,
-    isRecurringHint: false,
     ...extra,
   }
 }
@@ -57,7 +56,7 @@ describe('category spike', () => {
     const card = spike(ctx(expenses))
     expect(card?.rule).toBe('spike')
     expect(card?.text).toBe('Groceries is €100 above your usual month.')
-    expect(card?.action).toMatchObject({ kind: 'set-cap', categoryId: 'cat-groceries' })
+    expect(card?.action).toBeNull()
   })
 
   it('says nothing when the month is merely a little above the median', () => {
@@ -69,66 +68,6 @@ describe('category spike', () => {
     expect(spike(ctx(expenses))).toBeNull()
   })
 
-  it('leaves categories that already have a cap alone', () => {
-    const capped = CATEGORIES.map((c) =>
-      c.id === 'cat-groceries' ? { ...c, monthlyCap: 15_000 } : c,
-    )
-    const expenses = [
-      e('2026-06-05', 10_000, 'cat-groceries'),
-      e('2026-07-05', 10_000, 'cat-groceries'),
-      e('2026-08-05', 20_000, 'cat-groceries'),
-    ]
-    expect(spike(ctx(expenses, capped))).toBeNull()
-  })
-})
-
-describe('cap opportunity', () => {
-  it('needs a completed month before it can suggest a number', () => {
-    expect(capOpportunity(ctx([e('2026-08-05', 20_000, 'cat-groceries')]))).toBeNull()
-  })
-
-  it('offers a cap for a top-three category', () => {
-    const expenses = [
-      e('2026-07-05', 20_000, 'cat-groceries'),
-      e('2026-08-05', 18_000, 'cat-groceries'),
-    ]
-    const card = capOpportunity(ctx(expenses))
-    expect(card?.rule).toBe('cap-opportunity')
-    expect(card?.action).toMatchObject({ kind: 'set-cap', suggestedCap: 20_000 })
-  })
-})
-
-describe('recurring detection', () => {
-  it('spots the same amount in two months running', () => {
-    const expenses = [
-      e('2026-07-03', 1_499, 'cat-fun'),
-      e('2026-08-03', 1_499, 'cat-fun'),
-    ]
-    const card = recurring(ctx(expenses))
-    expect(card?.rule).toBe('recurring')
-    expect(card?.action).toMatchObject({ kind: 'mark-recurring', expenseIds: expect.any(Array) })
-  })
-
-  it('accepts a 5% drift in the amount', () => {
-    const card = recurring(ctx([e('2026-07-03', 1_000, 'cat-fun'), e('2026-08-03', 1_040, 'cat-fun')]))
-    expect(card?.rule).toBe('recurring')
-  })
-
-  it('rejects amounts further apart than 5%', () => {
-    expect(recurring(ctx([e('2026-07-03', 1_000, 'cat-fun'), e('2026-08-03', 1_200, 'cat-fun')]))).toBeNull()
-  })
-
-  it('needs the months to be consecutive', () => {
-    expect(recurring(ctx([e('2026-05-03', 1_499, 'cat-fun'), e('2026-08-03', 1_499, 'cat-fun')]))).toBeNull()
-  })
-
-  it('does not re-offer something already marked', () => {
-    const expenses = [
-      e('2026-07-03', 1_499, 'cat-fun', { isRecurringHint: true }),
-      e('2026-08-03', 1_499, 'cat-fun', { isRecurringHint: true }),
-    ]
-    expect(recurring(ctx(expenses))).toBeNull()
-  })
 })
 
 describe('uncategorised drift', () => {
@@ -200,8 +139,11 @@ describe('the engine', () => {
       e('2026-06-05', 10_000, 'cat-groceries'),
       e('2026-07-05', 10_000, 'cat-groceries'),
       e('2026-08-05', 20_000, 'cat-groceries'),
+      e('2026-08-06', 2_000, 'cat-other'),
+      e('2026-08-07', 2_000, 'cat-other'),
+      e('2026-08-08', 2_000, 'cat-other'),
     ]
-    // Both the spike and the cap-opportunity rules match; spike ranks higher.
+    // Both the spike and the drift rules match; spike ranks higher.
     expect(pickInsight(ctx(expenses))?.rule).toBe('spike')
   })
 

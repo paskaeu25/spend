@@ -10,7 +10,6 @@ import {
   minorToAmount,
   minorToDecimalString,
   parseMoneyInput,
-  roundCapSuggestion,
   splitShare,
   type AmountEntry,
   type KeypadKey,
@@ -106,14 +105,6 @@ describe('parsing and helpers', () => {
     expect(minorToDecimalString(100000)).toBe('1000.00')
   })
 
-  it('rounds cap suggestions to a nudgeable number', () => {
-    // Steps get coarser as the figure grows: whole units, then 5, then 10.
-    expect(roundCapSuggestion(4_312)).toBe(4_300)
-    expect(roundCapSuggestion(12_312)).toBe(12_500)
-    expect(roundCapSuggestion(24_312)).toBe(24_000)
-    expect(roundCapSuggestion(31_800)).toBe(32_000)
-    expect(roundCapSuggestion(0)).toBe(500)
-  })
 
   it('takes a share of a shared bill and stays on whole cents', () => {
     expect(splitShare(4_000, 50)).toBe(2_000)

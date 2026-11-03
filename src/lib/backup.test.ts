@@ -7,10 +7,10 @@ import { parseCSV, toCSV } from './csv'
 const settings: Settings = { ...DEFAULT_SETTINGS, currency: 'EUR', currencySymbol: '€', monthStartDay: 5 }
 
 const categories: Category[] = [
-  { id: 'cat-groceries', name: 'Groceries', emoji: '🛒', colorSlot: 1, monthlyCap: 25_000, isArchived: false, sortWeight: 0 },
-  { id: 'cat-fun', name: 'Fun', emoji: '🎬', colorSlot: 5, monthlyCap: null, isArchived: true, sortWeight: 1 },
+  { id: 'cat-groceries', name: 'Groceries', emoji: '🛒', colorSlot: 1, isArchived: false, sortWeight: 0 },
+  { id: 'cat-fun', name: 'Fun', emoji: '🎬', colorSlot: 5,  isArchived: true, sortWeight: 1 },
   // A category with no expenses at all still has to survive the trip.
-  { id: 'cat-unused', name: 'Health', emoji: '🩺', colorSlot: 3, monthlyCap: 5_000, isArchived: false, sortWeight: 2 },
+  { id: 'cat-unused', name: 'Health', emoji: '🩺', colorSlot: 3, isArchived: false, sortWeight: 2 },
 ]
 
 const expenses: Expense[] = [
@@ -23,7 +23,6 @@ const expenses: Expense[] = [
     note: 'Bread, "good" one\nsecond line',
     date: '2026-08-04',
     createdAt: '2026-08-04T09:30:00.000Z',
-    isRecurringHint: false,
   },
   {
     id: 'e2',
@@ -33,7 +32,6 @@ const expenses: Expense[] = [
     note: '',
     date: '2026-07-31',
     createdAt: '2026-07-31T18:00:00.000Z',
-    isRecurringHint: true,
   },
   {
     id: 'e3',
@@ -43,7 +41,6 @@ const expenses: Expense[] = [
     note: 'Joint account',
     date: '2026-07-20',
     createdAt: '2026-07-20T12:00:00.000Z',
-    isRecurringHint: false,
     // Half of a €40 bill. The pair has to survive both formats, or reopening the
     // row after a restore would edit it as a €20 expense.
     fullAmount: 4_000,

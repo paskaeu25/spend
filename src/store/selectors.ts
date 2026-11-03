@@ -171,40 +171,6 @@ export function categoryMonthlyMedian(
   return { medianMinor: median(values), monthCount: values.length }
 }
 
-export interface CapProgress {
-  category: Category
-  cap: number
-  spent: number
-  /** Positive when spending is under the cap. */
-  remaining: number
-  ratio: number
-  isOver: boolean
-}
-
-export function capProgress(
-  categories: Category[],
-  expenses: Expense[],
-  range: MonthRange,
-): CapProgress[] {
-  const monthExpenses = inMonth(expenses, range)
-  return categories
-    .filter((c) => c.monthlyCap !== null && c.monthlyCap > 0 && !c.isArchived)
-    .map((category) => {
-      const cap = category.monthlyCap as number
-      let spent = 0
-      for (const e of monthExpenses) if (e.categoryId === category.id) spent += e.amount
-      return {
-        category,
-        cap,
-        spent,
-        remaining: cap - spent,
-        ratio: cap > 0 ? spent / cap : 0,
-        isOver: spent > cap,
-      }
-    })
-    .sort((a, b) => b.ratio - a.ratio)
-}
-
 export interface DayGroup {
   date: string
   total: number

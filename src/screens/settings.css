@@ -170,12 +170,6 @@
   letter-spacing: 0.04em;
 }
 
-.cat-cap {
-  flex: none;
-  font-size: 0.8125rem;
-  color: var(--ink-2);
-}
-
 .cat-chevron {
   flex: none;
   color: var(--label);

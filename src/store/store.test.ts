@@ -9,7 +9,6 @@ import {
   importData,
   init,
   restoreExpenses,
-  updateCategory,
 } from './store'
 
 /** Storage writes are fire-and-forget, so give the transaction a turn to land. */
@@ -24,7 +23,6 @@ function expense(id: string, amount: number): Expense {
     note: '',
     date: '2026-08-04',
     createdAt: '2026-08-04T10:00:00.000Z',
-    isRecurringHint: false,
   }
 }
 
@@ -77,13 +75,6 @@ describe('the data layer', () => {
     expect(getState().expenses.filter((e) => e.id === 'x1')).toHaveLength(1)
   })
 
-  it('saves a cap on a category', async () => {
-    const category = getState().categories[0]
-    updateCategory({ ...category, monthlyCap: 25_000 })
-    await settled()
-    const stored = await getAll<Category>(STORE_CATEGORIES)
-    expect(stored.find((c) => c.id === category.id)?.monthlyCap).toBe(25_000)
-  })
 
   it('replaces everything on import, in one transaction', async () => {
     importData({
@@ -94,7 +85,6 @@ describe('the data layer', () => {
           name: 'Solo',
           emoji: '🎯',
           colorSlot: 1,
-          monthlyCap: null,
           isArchived: false,
           sortWeight: 0,
         },

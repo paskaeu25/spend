@@ -277,20 +277,6 @@ await check('the colour swatch is inside the tap target', async () => {
   await sheetGone()
 })
 
-await check('setting a cap turns on the Home meter with the right figure', async () => {
-  await page.locator('.cat-main').first().click()
-  await sheetVisible()
-  await page.getByLabel(/Monthly cap/).fill('100')
-  await page.getByRole('button', { name: 'Save changes' }).click()
-  await sheetGone()
-
-  await page.getByRole('button', { name: 'Today' }).click()
-  const meter = page.getByRole('progressbar')
-  await seen(meter)
-  // €100 cap against the €12 logged above.
-  await seen(page.getByText('€88 left'))
-})
-
 await page.getByRole('button', { name: 'Settings' }).click()
 await seen(page.getByRole('button', { name: 'Delete all data' }))
 

@@ -82,7 +82,6 @@ describe('importing another app’s JSON', () => {
   it('creates what is genuinely new, with an icon picked from the name', () => {
     const utilities = result.categories.find((c) => c.name === 'Utilities')!
     expect(utilities.emoji).toBe('💡')
-    expect(utilities.monthlyCap).toBeNull()
     expect(result.conversion?.createdCategories).toEqual(['Utilities'])
   })
 
@@ -101,7 +100,6 @@ describe('importing another app’s JSON', () => {
   it('fills in the fields the file has no column for', () => {
     for (const e of result.expenses) {
       expect(e.currency).toBe('EUR')
-      expect(e.isRecurringHint).toBe(false)
       expect(e.createdAt.startsWith(e.date)).toBe(true)
     }
   })
@@ -222,7 +220,6 @@ describe('native backups still take the native path', () => {
           note: '',
           date: '2026-08-01',
           createdAt: '2026-08-01T10:00:00.000Z',
-          isRecurringHint: false,
         },
       ],
     })

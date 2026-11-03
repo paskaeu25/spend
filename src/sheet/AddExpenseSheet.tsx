@@ -150,7 +150,6 @@ export function AddExpenseSheet({ open, onClose, editing }: AddExpenseSheetProps
       note: trimmedNote,
       date,
       createdAt: new Date().toISOString(),
-      isRecurringHint: false,
       ...(split ?? {}),
     }
     addExpense(expense)
@@ -272,7 +271,6 @@ export function AddExpenseSheet({ open, onClose, editing }: AddExpenseSheetProps
         name,
         emoji,
         colorSlot: nextColorSlot(categories),
-        monthlyCap: null,
         isArchived: false,
         sortWeight: categories.length,
       }

@@ -25,7 +25,6 @@ export function seedCategories(): Category[] {
   return DEFAULTS.map((d, i) => ({
     ...d,
     colorSlot: ((i % 8) + 1) as ColorSlot,
-    monthlyCap: null,
     isArchived: false,
     sortWeight: i,
   }))

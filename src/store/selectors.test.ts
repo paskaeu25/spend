@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import type { Category, Expense } from '../types'
 import { monthRange } from '../lib/dates'
 import {
-  capProgress,
   categoryMonthlyMedian,
   chipOrder,
   dailyCumulative,
@@ -19,7 +18,6 @@ function expense(partial: Partial<Expense> & { date: string; amount: number }): 
     categoryId: 'a',
     note: '',
     createdAt: `${partial.date}T12:00:00.000Z`,
-    isRecurringHint: false,
     ...partial,
   }
 }
@@ -29,7 +27,6 @@ function category(partial: Partial<Category> & { id: string }): Category {
     name: partial.id,
     emoji: '🏷️',
     colorSlot: 1,
-    monthlyCap: null,
     isArchived: false,
     sortWeight: 0,
     ...partial,
@@ -142,25 +139,3 @@ describe('categoryMonthlyMedian', () => {
   })
 })
 
-describe('capProgress', () => {
-  it('reports remaining, ratio and over-cap state', () => {
-    const categories = [
-      category({ id: 'a', monthlyCap: 10_000 }),
-      category({ id: 'b', monthlyCap: 5_000 }),
-      category({ id: 'c' }),
-    ]
-    const expenses = [
-      expense({ date: '2026-08-02', amount: 4_000, categoryId: 'a' }),
-      expense({ date: '2026-08-02', amount: 6_000, categoryId: 'b' }),
-      expense({ date: '2026-08-02', amount: 9_999, categoryId: 'c' }),
-    ]
-    const progress = capProgress(categories, expenses, august)
-    expect(progress).toHaveLength(2)
-    // Sorted by how close each is to its cap.
-    expect(progress[0].category.id).toBe('b')
-    expect(progress[0].isOver).toBe(true)
-    expect(progress[0].remaining).toBe(-1_000)
-    expect(progress[1].remaining).toBe(6_000)
-    expect(progress[1].isOver).toBe(false)
-  })
-})

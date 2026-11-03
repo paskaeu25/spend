@@ -1,11 +1,10 @@
 import { useMemo, useState } from 'react'
 import { dayIndexInMonth, dayLabel, monthLabel, monthRange, shiftMonth, todayISO } from '../lib/dates'
 import { formatAmountBody, formatMoney } from '../lib/money'
-import { capProgress, categoryMap, expensesOn, totalThroughDay } from '../store/selectors'
+import { categoryMap, expensesOn, totalThroughDay } from '../store/selectors'
 import { deleteExpenses, restoreExpenses, useStore } from '../store/store'
 import { ExpenseRow } from '../ui/ExpenseRow'
 import { ConfirmDeleteSheet } from '../ui/ConfirmDeleteSheet'
-import { Meter } from '../ui/Meter'
 import { useToast } from '../ui/Toast'
 import { InsightCard } from '../insights/InsightCard'
 import { useNav } from '../App'
@@ -27,10 +26,9 @@ export function Home() {
 
     const monthToDate = totalThroughDay(expenses, month, daysIn)
     const previousToDate = totalThroughDay(expenses, previous, daysIn)
-    const caps = capProgress(categories, expenses, month)
 
-    return { month, monthToDate, previousToDate, caps }
-  }, [expenses, categories, settings.monthStartDay, today])
+    return { month, monthToDate, previousToDate }
+  }, [expenses, settings.monthStartDay, today])
 
   const cats = useMemo(() => categoryMap(categories), [categories])
   const todaysExpenses = useMemo(() => expensesOn(expenses, today), [expenses, today])
@@ -72,21 +70,6 @@ export function Home() {
     }
   }
 
-  /* One pooled meter for every cap that exists, plus the one category most over,
-     framed as reallocation rather than as a verdict. */
-  const capSummary = useMemo(() => {
-    if (view.caps.length === 0) return null
-    const cap = view.caps.reduce((n, c) => n + c.cap, 0)
-    const spent = view.caps.reduce((n, c) => n + c.spent, 0)
-    const over = spent - cap
-    const mostOver = view.caps.find((c) => c.isOver) ?? null
-    const headroom = [...view.caps]
-      .filter((c) => c.remaining > 0 && c.category.id !== mostOver?.category.id)
-      .sort((a, b) => b.remaining - a.remaining)[0]
-
-    return { cap, spent, over, ratio: cap > 0 ? spent / cap : 0, mostOver, headroom }
-  }, [view.caps])
-
   return (
     <div>
       <h1 className="sr-only">Today</h1>
@@ -107,34 +90,6 @@ export function Home() {
           )
         )}
       </section>
-
-      {capSummary && (
-        <section className="card home-caps" aria-label="Monthly caps">
-          <Meter
-            ratio={capSummary.ratio}
-            isOver={capSummary.over > 0}
-            ariaLabel="Spending against your monthly caps"
-            primaryLabel={
-              capSummary.over > 0
-                ? `${formatMoney(capSummary.over, { symbol, whole: true })} over your caps`
-                : `${formatMoney(capSummary.cap - capSummary.spent, { symbol, whole: true })} left`
-            }
-            secondaryLabel={`${formatMoney(capSummary.spent, { symbol, whole: true })} of ${formatMoney(
-              capSummary.cap,
-              { symbol, whole: true },
-            )}`}
-          />
-          {capSummary.mostOver && (
-            <p className="home-caps-note">
-              {capSummary.mostOver.category.name} is{' '}
-              {formatMoney(-capSummary.mostOver.remaining, { symbol, whole: true })} over
-              {capSummary.headroom
-                ? ` — trim there or take it from ${capSummary.headroom.category.name}.`
-                : ' — trim there or move the cap.'}
-            </p>
-          )}
-        </section>
-      )}
 
       {!isFirstRun && <InsightCard />}
 

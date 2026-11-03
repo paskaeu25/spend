@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import type { Category } from '../types'
 import { Sheet } from '../ui/Sheet'
 import { ConfirmDeleteSheet } from '../ui/ConfirmDeleteSheet'
-import { minorToDecimalString, parseMoneyInput } from '../lib/money'
 import {
   reassignAndDeleteCategory,
   reassignTargetFor,
@@ -20,17 +19,16 @@ interface CategorySheetProps {
 }
 
 /**
- * Rename, re-emoji, cap and archive in one place. Categories are archived rather
+ * Rename, re-emoji and archive in one place. Categories are archived rather
  * than deleted: deleting would orphan the expenses filed under them.
  */
 export function CategorySheet({ open, category, onClose }: CategorySheetProps) {
-  const { settings, expenses } = useStore()
+  const { expenses } = useStore()
   const announce = useAnnounce()
   const toast = useToast()
 
   const [name, setName] = useState('')
   const [emoji, setEmoji] = useState('')
-  const [capText, setCapText] = useState('')
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const nameRef = useRef<HTMLInputElement>(null)
 
@@ -38,15 +36,12 @@ export function CategorySheet({ open, category, onClose }: CategorySheetProps) {
     if (!open || !category) return
     setName(category.name)
     setEmoji(category.emoji)
-    setCapText(category.monthlyCap != null ? minorToDecimalString(category.monthlyCap).replace(/\.00$/, '') : '')
     setConfirmingDelete(false)
   }, [open, category])
 
   if (!category) return null
 
-  const capMinor = parseMoneyInput(capText)
-  const capValid = capText.trim() === '' || (capMinor !== null && capMinor > 0)
-  const canSave = name.trim().length > 0 && capValid
+  const canSave = name.trim().length > 0
 
   // Deleting is only offered when there is somewhere for the expenses to go.
   const reassignTarget = reassignTargetFor(category.id)
@@ -58,7 +53,6 @@ export function CategorySheet({ open, category, onClose }: CategorySheetProps) {
       ...category,
       name: name.trim(),
       emoji: emoji.trim() || category.emoji,
-      monthlyCap: capText.trim() === '' ? null : capMinor,
     })
     announce('Category updated.')
     onClose()
@@ -130,20 +124,6 @@ export function CategorySheet({ open, category, onClose }: CategorySheetProps) {
             />
           </label>
         </div>
-
-        <label className="field">
-          <span className="field-label">Monthly cap ({settings.currencySymbol.trim()})</span>
-          <input
-            className="field-input tabular"
-            type="text"
-            inputMode="decimal"
-            value={capText}
-            placeholder="No cap"
-            autoComplete="off"
-            onChange={(e) => setCapText(e.target.value)}
-          />
-          <span className="field-hint">Leave empty for no cap. A cap resets at the start of each month.</span>
-        </label>
 
         <button type="button" className="btn btn-secondary settings-wide" onClick={toggleArchive}>
           {category.isArchived ? 'Restore category' : 'Archive category'}

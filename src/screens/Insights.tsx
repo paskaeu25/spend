@@ -250,12 +250,6 @@ export function Insights() {
                         <span className="drill-list-date">{dayLabel(e.date, today)}</span>
                         <span className="drill-list-note">
                           <span className="drill-list-text">{e.note || '—'}</span>
-                          {e.isRecurringHint && (
-                            <span className="drill-list-mark" title="Recurring">
-                              <span aria-hidden="true">↻</span>
-                              <span className="sr-only">Recurring</span>
-                            </span>
-                          )}
                           {split && (
                             <span className="drill-list-mark" title={split.title}>
                               <span aria-hidden="true">{split.mark}</span>

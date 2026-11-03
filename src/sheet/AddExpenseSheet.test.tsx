@@ -279,7 +279,6 @@ describe('the add-expense sheet', () => {
         note: '',
         date: todayISO(),
         createdAt: `${todayISO()}T09:00:00.000Z`,
-        isRecurringHint: false,
         fullAmount: 4_000,
         sharePct: 50,
       }
@@ -311,7 +310,6 @@ describe('the add-expense sheet', () => {
       note: 'Bread',
       date: todayISO(),
       createdAt: `${todayISO()}T09:00:00.000Z`,
-      isRecurringHint: false,
     }
 
     function renderEdit() {

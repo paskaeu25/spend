@@ -44,11 +44,6 @@
   text-overflow: ellipsis;
 }
 
-.expense-recurring {
-  color: var(--label);
-  font-size: 0.75rem;
-}
-
 .expense-split {
   flex: none;
   padding: 1px 6px;

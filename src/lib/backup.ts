@@ -53,6 +53,17 @@ export interface ConversionReport {
 
 /* ---------- JSON ---------- */
 
+/**
+ * Caps and the recurring mark were removed from the app, but rows saved before
+ * that still carry the old field in IndexedDB. Leave it out of new backups.
+ */
+function withoutLegacy<T extends object>(row: T, key: string): T {
+  if (!(key in row)) return row
+  const copy = { ...row } as Record<string, unknown>
+  delete copy[key]
+  return copy as T
+}
+
 export function toJSONBackup(data: {
   settings: Settings
   categories: Category[]
@@ -62,8 +73,8 @@ export function toJSONBackup(data: {
     version: BACKUP_VERSION,
     exportedAt: new Date().toISOString(),
     settings: data.settings,
-    categories: data.categories,
-    expenses: data.expenses,
+    categories: data.categories.map((c) => withoutLegacy(c, 'monthlyCap')),
+    expenses: data.expenses.map((e) => withoutLegacy(e, 'isRecurringHint')),
   }
   return JSON.stringify(payload, null, 2)
 }
@@ -226,7 +237,6 @@ function fromForeignJSON(
       // Assigned by creation order, per the fixed palette — the file's own hex
       // colours are outside it and are not carried over.
       colorSlot: nextColorSlot(categories),
-      monthlyCap: null,
       isArchived: false,
       sortWeight: categories.length,
     }
@@ -287,7 +297,6 @@ function fromForeignJSON(
       note: note.slice(0, 120),
       date,
       createdAt: readCreatedAt(e, date),
-      isRecurringHint: e.isRecurringHint === true || e.recurring === true,
     })
   })
 
@@ -340,7 +349,7 @@ function localISODate(d: Date): string {
 /**
  * Readable columns first, then the fields needed to reconstruct state exactly.
  * The category attributes repeat per row — the standard denormalised CSV trade —
- * which is what lets a CSV round trip keep caps, order and archive state.
+ * which is what lets a CSV round trip keep order and archive state.
  */
 const CSV_COLUMNS = [
   'date',
@@ -349,12 +358,10 @@ const CSV_COLUMNS = [
   'category',
   'emoji',
   'note',
-  'recurring',
   'id',
   'createdAt',
   'categoryId',
   'colorSlot',
-  'monthlyCap',
   'archived',
   'sortWeight',
   // Appended rather than slotted in beside `amount`, so a spreadsheet or script
@@ -380,12 +387,10 @@ export function toCSVBackup(data: {
       c?.name ?? '',
       c?.emoji ?? '',
       e.note,
-      e.isRecurringHint ? 'yes' : 'no',
       e.id,
       e.createdAt,
       e.categoryId,
       c ? String(c.colorSlot) : '',
-      c?.monthlyCap != null ? minorToDecimalString(c.monthlyCap) : '',
       c?.isArchived ? 'yes' : 'no',
       c ? String(c.sortWeight) : '',
       e.fullAmount != null ? minorToDecimalString(e.fullAmount) : '',
@@ -403,12 +408,10 @@ export function toCSVBackup(data: {
       c.name,
       c.emoji,
       '',
-      'no',
       '',
       '',
       c.id,
       String(c.colorSlot),
-      c.monthlyCap != null ? minorToDecimalString(c.monthlyCap) : '',
       c.isArchived ? 'yes' : 'no',
       String(c.sortWeight),
       '',
@@ -435,12 +438,10 @@ export function fromCSVBackup(text: string, fallbackCurrency = 'EUR'): ImportRes
   const iCategory = index('category')
   const iEmoji = index('emoji')
   const iNote = index('note')
-  const iRecurring = index('recurring')
   const iId = index('id')
   const iCreatedAt = index('createdAt')
   const iCategoryId = index('categoryId')
   const iColorSlot = index('colorSlot')
-  const iCap = index('monthlyCap')
   const iArchived = index('archived')
   const iSortWeight = index('sortWeight')
   const iFullAmount = index('fullAmount')
@@ -456,7 +457,6 @@ export function fromCSVBackup(text: string, fallbackCurrency = 'EUR'): ImportRes
     const categoryId = cell(row, iCategoryId) || slugFor(name) || `imported-${n}`
 
     if (!categories.has(categoryId)) {
-      const capMinor = parseMoneyInput(cell(row, iCap))
       const slot = Number(cell(row, iColorSlot))
       const weight = Number(cell(row, iSortWeight))
       categories.set(categoryId, {
@@ -464,7 +464,6 @@ export function fromCSVBackup(text: string, fallbackCurrency = 'EUR'): ImportRes
         name: name || 'Imported',
         emoji: cell(row, iEmoji) || '🏷️',
         colorSlot: (slot >= 1 && slot <= 8 ? slot : (categories.size % 8) + 1) as ColorSlot,
-        monthlyCap: capMinor != null && capMinor > 0 ? capMinor : null,
         isArchived: cell(row, iArchived).toLowerCase() === 'yes',
         sortWeight: Number.isFinite(weight) ? weight : categories.size,
       })
@@ -485,7 +484,6 @@ export function fromCSVBackup(text: string, fallbackCurrency = 'EUR'): ImportRes
       // A hand-made CSV will not have this column; midday keeps it inside the day
       // in every timezone.
       createdAt: cell(row, iCreatedAt) || new Date(`${date}T12:00:00`).toISOString(),
-      isRecurringHint: cell(row, iRecurring).toLowerCase() === 'yes',
       ...readSplit(parseMoneyInput(cell(row, iFullAmount)), Number(cell(row, iSharePct))),
     })
   })
@@ -507,10 +505,6 @@ function normalizeCategory(input: unknown): Category {
     name: String(c.name ?? 'Imported'),
     emoji: String(c.emoji ?? '🏷️'),
     colorSlot: (slot >= 1 && slot <= 8 ? slot : 1) as ColorSlot,
-    monthlyCap:
-      typeof c.monthlyCap === 'number' && Number.isFinite(c.monthlyCap) && c.monthlyCap > 0
-        ? Math.round(c.monthlyCap)
-        : null,
     isArchived: c.isArchived === true,
     sortWeight: Number.isFinite(Number(c.sortWeight)) ? Number(c.sortWeight) : 0,
   }
@@ -531,7 +525,6 @@ function normalizeExpense(input: unknown, fallbackCurrency: string): Expense {
     note: String(e.note ?? '').slice(0, 120),
     date,
     createdAt: typeof e.createdAt === 'string' ? e.createdAt : new Date(`${date}T12:00:00`).toISOString(),
-    isRecurringHint: e.isRecurringHint === true,
     ...readSplit(e.fullAmount, e.sharePct),
   }
 }
@@ -558,7 +551,6 @@ function placeholderCategory(id: string, order: number): Category {
     name: 'Imported',
     emoji: '🏷️',
     colorSlot: ((order % 8) + 1) as ColorSlot,
-    monthlyCap: null,
     isArchived: false,
     sortWeight: order,
   }

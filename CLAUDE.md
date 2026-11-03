@@ -111,12 +111,12 @@ category.
   from a joint account (Settings → Shared expenses, off by default). Such a row also
   carries `fullAmount` and `sharePct`, but those are annotation: they exist so the add
   sheet can reopen the row as the bill that was typed and so History can show a `½` mark.
-  No selector, cap, chart, insight or export should ever multiply by `sharePct` — doing
+  No selector, chart, insight or export should ever multiply by `sharePct` — doing
   that would double-apply the split. `src/sheet/SplitRow.tsx` and `splitShare` in money.ts
   are the only places the arithmetic happens.
 - **Months always go through `src/lib/dates.ts`'s `monthRange`**, which honours
   `settings.monthStartDay` (1–28, spec section on custom month boundaries). The hero
-  figure, caps, charts, and insight rules all derive their "this month" window from the
+  figure, charts, and insight rules all derive their "this month" window from the
   same function — don't compute a month boundary ad hoc elsewhere.
 
 ### Layout

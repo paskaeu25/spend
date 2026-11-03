@@ -142,7 +142,6 @@ export function Settings() {
       name,
       emoji: '🏷️',
       colorSlot: nextColorSlot(categories),
-      monthlyCap: null,
       isArchived: false,
       sortWeight: categories.length,
     })
@@ -332,9 +331,6 @@ export function Settings() {
                 <span className="cat-name">
                   {c.name}
                   {c.isArchived && <span className="cat-tag">Archived</span>}
-                </span>
-                <span className="cat-cap tabular">
-                  {c.monthlyCap != null ? formatMoney(c.monthlyCap, { symbol, whole: true }) : 'No cap'}
                 </span>
                 <span className="cat-chevron" aria-hidden="true">
                   ›

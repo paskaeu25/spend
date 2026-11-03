@@ -4,6 +4,7 @@ import { useStore } from '../store/store'
 import { useAnnounce } from '../ui/LiveRegion'
 import { useNav } from '../App'
 import { dismissInsight, pickInsight } from './engine'
+import './insight-card.css'
 
 /**
  * The single insight slot. Renders nothing when no rule fires — an empty slot

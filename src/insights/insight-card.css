@@ -1,0 +1,42 @@
+/* The insight card. These rules sat in cap-sheet.css until caps were removed. */
+
+.insight {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+  margin: 12px 0;
+}
+
+.insight-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.insight-text {
+  font-size: 0.9375rem;
+  line-height: 1.35;
+}
+
+.insight-action {
+  margin-top: 10px;
+  min-height: var(--tap);
+  padding: 0 16px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-fill);
+  color: var(--on-accent);
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.insight-dismiss {
+  flex: none;
+  width: var(--tap);
+  height: var(--tap);
+  margin: -8px -8px 0 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--label);
+  font-size: 0.875rem;
+}

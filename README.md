@@ -6,6 +6,10 @@ on your device.
 **Use it now → https://spend-gilt-ten.vercel.app**
 
 <p>
+  <img src="docs/spend-demo.gif" alt="20-second demo: adding an expense and seeing where the money went" width="720">
+</p>
+
+<p>
   <img src="docs/home.png" alt="Today screen: the month's total so far" width="240">
   <img src="docs/add.png" alt="Add expense sheet with keypad and categories" width="240">
   <img src="docs/insights.png" alt="Insights: spending by category and over time" width="240">

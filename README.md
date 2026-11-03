@@ -5,6 +5,12 @@ on your device.
 
 **Use it now → https://spend-gilt-ten.vercel.app**
 
+<p>
+  <img src="docs/home.png" alt="Today screen: the month's total so far" width="240">
+  <img src="docs/add.png" alt="Add expense sheet with keypad and categories" width="240">
+  <img src="docs/insights.png" alt="Insights: spending by category and over time" width="240">
+</p>
+
 ## What it does
 
 - **Log fast** — type an amount, tap a category, done.

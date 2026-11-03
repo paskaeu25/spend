@@ -5,6 +5,21 @@ on your device.
 
 **Use it now → https://spend-gilt-ten.vercel.app**
 
+## What it does
+
+- **Log fast** — type an amount, tap a category, done.
+- **History** — every expense by day, with filters by month and category.
+- **Insights** — where the money went, spending over time, and a short tip when
+  something stands out.
+- **Shared bills** — optional: log a bill paid from a joint account and count only your
+  share (Settings → Shared expenses).
+- **Backup** — export to JSON or CSV, and import from a backup or from another tracker.
+- **Your month, your way** — pick the day your spending month starts.
+
+> **Back up now and then.** Your expenses live only on this device. Clearing browser
+> data, uninstalling the app, or losing the phone deletes them for good. Settings →
+> export gives you a file you can import again.
+
 ## Get it on your phone
 
 **Android** — download the `.apk` from the [latest release](../../releases/latest) on the
